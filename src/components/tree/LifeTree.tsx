@@ -105,7 +105,8 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
           return (
             <g key={d.id} className="branch" style={{ opacity: dim ? 0.25 : 1 }}>
               <path d={g.path} stroke="url(#bark)" strokeWidth="13" fill="none" strokeLinecap="round" />
-              <path d={g.path} stroke={glow(d.hue)} strokeWidth="2" fill="none" className="sap" filter="url(#halo)" />
+              <path d={g.path} stroke={glow(d.hue, 0.72, 0.22)} strokeWidth="7" fill="none" opacity="0.35" filter="url(#soft)" />
+              <path d={g.path} stroke={glow(d.hue, 0.85, 0.2)} strokeWidth="2.2" fill="none" className="sap" filter="url(#halo)" />
               <g
                 role="button" tabIndex={0} aria-label={`Explorer le domaine ${d.name}`}
                 className="branch-hit"
@@ -113,10 +114,13 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onFocus(d.id); }}
               >
                 <path d={g.path} stroke="transparent" strokeWidth="34" fill="none" />
-                <circle cx={g.end.x} cy={g.end.y} r="38" fill={glow(d.hue, 0.7, 0.12)} opacity="0.25" filter="url(#soft)" />
-                <circle cx={g.end.x} cy={g.end.y} r={active ? 9 : 13} fill={glow(d.hue, 0.88)} filter="url(#halo)" className="core" />
+                <circle cx={g.end.x} cy={g.end.y} r="46" fill={glow(d.hue, 0.7, 0.22)} opacity="0.4" filter="url(#soft)" />
+                <circle cx={g.end.x} cy={g.end.y} r="24" fill="var(--background)" stroke={glow(d.hue, 0.85, 0.2)} strokeWidth="2.5" filter="url(#halo)" />
+                <circle cx={g.end.x} cy={g.end.y} r="29" fill="none" stroke={glow(d.hue, 0.8, 0.18)} strokeWidth="0.8" opacity="0.6" />
+                <circle cx={g.end.x} cy={g.end.y} r={active ? 7 : 10} fill={glow(d.hue, 0.9, 0.2)} filter="url(#halo)" className="core" />
                 {!focusId && (
-                  <text x={g.end.x} y={g.end.y - 26} textAnchor="middle" className="branch-label">{d.name}</text>
+                  <text x={g.end.x} y={g.end.y - 40} textAnchor="middle" className="branch-label"
+                    style={{ fill: glow(d.hue, 0.88, 0.18) }}>{d.name.split(" ")[0]!.toUpperCase()}</text>
                 )}
               </g>
               {/* Sous-nœuds */}
@@ -128,7 +132,9 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
                     <g key={n.id} role="button" tabIndex={active ? 0 : -1} aria-label={n.label} className="subnode"
                       onClick={(e) => { e.stopPropagation(); onNode(n.id); }}
                       onKeyDown={(e) => { if (e.key === "Enter") onNode(n.id); }}>
-                      <line x1={g.end.x} y1={g.end.y} x2={p.x} y2={p.y} stroke={glow(d.hue)} strokeWidth="0.6" opacity="0.6" />
+                      <line x1={g.end.x} y1={g.end.y} x2={p.x} y2={p.y} stroke={glow(d.hue, 0.85, 0.2)} strokeWidth="0.8" opacity="0.8" />
+                      <rect x={p.x - n.label.length * 1.7 - 4} y={p.y + (p.y < g.end.y ? -17 : 8)} width={n.label.length * 3.4 + 8} height="10" rx="5"
+                        fill="var(--background)" fillOpacity="0.85" stroke={glow(d.hue, 0.8, 0.18)} strokeWidth={sel ? 0.9 : 0.4} />
                       <circle cx={p.x} cy={p.y} r={sel ? 7 : 5} className={`kind-${n.kind}`} strokeWidth={sel ? 1.5 : 0.8} filter="url(#halo)" />
                       <text x={p.x} y={p.y + (p.y < g.end.y ? -10 : 15)} textAnchor="middle" className="sub-label">{n.label}</text>
                     </g>
