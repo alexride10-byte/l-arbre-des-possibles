@@ -2,6 +2,9 @@ import { useMemo } from "react";
 import { DOMAINS, ROOTS, type Domain } from "@/data/domains";
 import { branchGeometry, rootGeometry, trunkGeometry, seeded, VIEW } from "@/lib/tree-geometry";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FRAGILITIES } from "@/data/fragilities";
+
+const FRAG_POS = [{ x: 300, y: 612 }, { x: 392, y: 622 }, { x: 500, y: 600 }, { x: 608, y: 622 }, { x: 700, y: 612 }];
 
 const glow = (h: number, l = 0.8, c = 0.13) => `oklch(${l} ${c} ${h})`;
 const LEAF = "M0,0 Q4,-3.2 9,0 Q4,3.2 0,0 Z";
@@ -12,9 +15,12 @@ interface Props {
   onFocus: (id: string) => void;
   onNode: (id: string) => void;
   onBack: () => void;
+  hidden?: string[];
+  fragilityId?: string | null;
+  onFragility?: (id: string) => void;
 }
 
-export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Props) {
+export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidden = [], fragilityId = null, onFragility }: Props) {
   const mobile = useIsMobile();
   const vb = mobile ? { x: 20, y: 40, w: 960, h: 760 } : { x: 0, y: -10, w: VIEW.w, h: VIEW.h + 10 };
   const geo = useMemo(() => branchGeometry(DOMAINS), []);
@@ -34,7 +40,10 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
   const fi = DOMAINS.findIndex((d) => d.id === focusId);
   const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
   const cam = fi >= 0 ? { x: geo[fi]!.end.x, y: geo[fi]!.end.y + 10, s: mobile ? 2.9 : 2.7 } : { x: cx, y: cy, s: 1 };
-    const transform = `translate(${cx}px, ${cy}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
+  const frag = FRAGILITIES.find((f) => f.id === fragilityId);
+  const fragIdx = FRAGILITIES.findIndex((f) => f.id === fragilityId);
+  if (frag && fi < 0) { cam.x = 500; cam.y = 470; cam.s = 1.12; }
+  const transform = `translate(${cx}px, ${cy}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
 
   return (
     <svg
@@ -109,9 +118,11 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
         {DOMAINS.map((d: Domain, i) => {
           const g = geo[i]!;
           const active = focusId === d.id;
-          const dim = focusId && !active;
+          const off = hidden.includes(d.id);
+          const linked = frag?.domains.includes(d.id);
+          const dim = (focusId && !active) || (frag && !linked);
           return (
-            <g key={d.id} className="branch" style={{ opacity: dim ? 0.3 : 1 }}>
+            <g key={d.id} className="branch" style={{ opacity: off ? 0.08 : dim ? 0.3 : 1, pointerEvents: off ? "none" : undefined }}>
               {g.twigs.map((t, k) => <path key={k} d={t} fill="url(#bark)" />)}
               <path d={g.body} fill="url(#bark)" />
               <path d={g.body} fill="var(--bark-light)" filter="url(#grain)" />
@@ -147,7 +158,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
                   const w = n.label.length * (mobile ? 5 : 3.3) + 10;
                   const h = mobile ? 14 : 10;
                   return (
-                    <g key={n.id} role="button" tabIndex={active ? 0 : -1} aria-label={n.label} className="subnode"
+                    <g key={n.id} style={{ transition: "opacity .5s, transform .6s", transitionDelay: active ? `${250 + k * 140}ms` : "0ms", opacity: active ? 1 : 0, transform: active ? "none" : `translate(${(g.end.x - p.x) * 0.6}px, ${(g.end.y - p.y) * 0.6}px)` }} role="button" tabIndex={active ? 0 : -1} aria-label={n.label} className="subnode"
                       onClick={(e) => { e.stopPropagation(); onNode(n.id); }}
                       onKeyDown={(e) => { if (e.key === "Enter") onNode(n.id); }}>
                       <path d={g.reveal[k]} stroke="url(#bark)" strokeWidth="2.4" fill="none" strokeLinecap="round" />
@@ -174,6 +185,38 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
         ))}
         <path d={trunk.spine} stroke="var(--gold)" strokeWidth="1.4" fill="none" className="sap" filter="url(#halo)" />
         <ellipse cx="500" cy="470" rx="70" ry="50" fill="url(#heart)" className="core" />
+
+        {/* Défis et fragilités : nœuds distincts (losanges), liens = relations possibles */}
+        {frag && FRAG_POS[fragIdx] && (
+          <g pointerEvents="none" className="frag-links">
+            {frag.domains.map((id) => {
+              const k = DOMAINS.findIndex((d) => d.id === id); const e = geo[k]?.end; const s0 = FRAG_POS[fragIdx]!;
+              return e ? <path key={id} d={`M${s0.x},${s0.y} Q${(s0.x + e.x) / 2 + (e.x < 500 ? -60 : 60)},${(s0.y + e.y) / 2} ${e.x},${e.y}`} stroke="var(--fragility)" strokeWidth="1.2" strokeDasharray="4 5" fill="none" className="dash-flow" /> : null;
+            })}
+            {frag.contexts.map((c) => {
+              const r = roots.find((x) => x.label === c); const s0 = FRAG_POS[fragIdx]!;
+              return r ? <path key={c} d={`M${s0.x},${s0.y} Q${(s0.x + r.end.x) / 2},${s0.y + 30} ${r.end.x},${r.end.y}`} stroke="var(--gold)" strokeWidth="1" strokeDasharray="3 5" fill="none" className="dash-flow" /> : null;
+            })}
+          </g>
+        )}
+        <g style={{ opacity: focusId ? 0.25 : 1, transition: "opacity .6s" }}>
+          {FRAGILITIES.map((f, i) => {
+            const p = FRAG_POS[i]!; const sel = f.id === fragilityId;
+            const short = f.label.replace("Difficultés de concentration", "Concentration").replace("Régulation émotionnelle", "Régulation");
+            return (
+              <g key={f.id} role="button" tabIndex={0} aria-label={`Fragilité : ${f.label}`} className="frag-node"
+                style={{ opacity: frag && !sel ? 0.45 : 1 }}
+                onClick={(e) => { e.stopPropagation(); onFragility?.(f.id); }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onFragility?.(f.id); } }}>
+                <circle cx={p.x} cy={p.y} r="22" fill="transparent" />
+                <rect x={p.x - 7} y={p.y - 7} width="14" height="14" transform={`rotate(45 ${p.x} ${p.y})`}
+                  fill="var(--background)" stroke="var(--fragility)" strokeWidth={sel ? 2 : 1.2} filter="url(#halo)" />
+                <circle cx={p.x} cy={p.y} r={sel ? 3.5 : 2.5} fill="var(--fragility)" className="core" />
+                <text x={p.x} y={p.y + (i % 2 ? 22 : -14)} textAnchor="middle" className="frag-label">{short}</text>
+              </g>
+            );
+          })}
+        </g>
       </g>
     </svg>
   );
