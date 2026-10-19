@@ -49,19 +49,24 @@ function Index() {
         </nav>
       </header>
 
-      <div className={`absolute inset-0 transition-all duration-700 ${focus ? "md:right-[420px]" : ""}`}>
+      <div className={`absolute inset-x-0 bottom-0 transition-all duration-700 md:top-14 ${focus ? "top-14 max-md:bottom-[52%] md:right-[420px]" : "top-28"}`}>
         <LifeTree focusId={focus} selectedNode={node} onFocus={open} onNode={setNode} onBack={back} />
       </div>
 
       {!focus && (
         <div className="pointer-events-none absolute inset-x-0 top-16 z-10 px-4 text-center">
           <p className="text-sm text-muted-foreground">Choisissez une branche pour explorer un domaine</p>
-          <p className="mt-1 text-xs text-muted-foreground/70">Les liens pointillés indiquent des proximités possibles, non des causalités.</p>
+          <p className="mt-1 hidden text-xs text-muted-foreground/70 sm:block">Les liens pointillés indiquent des proximités possibles, non des causalités.</p>
         </div>
       )}
 
       {domain && (
-        <div className="absolute inset-x-3 bottom-3 top-[45%] z-30 md:inset-x-auto md:bottom-6 md:right-6 md:top-24 md:w-[400px]">
+        <button onClick={back} aria-label="Revenir à l'arbre complet"
+          className="btn-back absolute right-3 top-4 z-40 md:right-auto md:left-6 md:top-24">← Arbre complet</button>
+      )}
+
+      {domain && (
+        <div className="absolute inset-x-3 bottom-3 top-[49%] z-30 md:inset-x-auto md:bottom-6 md:right-6 md:top-24 md:w-[400px]">
           <DomainPanel key={domain.id} domain={domain} selectedNode={node} onNode={setNode} onBack={back} />
         </div>
       )}

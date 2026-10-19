@@ -16,7 +16,7 @@ interface Props {
 
 export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Props) {
   const mobile = useIsMobile();
-  const vb = mobile ? { x: 160, y: 40, w: 680, h: 780 } : { x: 0, y: -40, w: VIEW.w, h: VIEW.h + 40 };
+  const vb = mobile ? { x: 20, y: 40, w: 960, h: 760 } : { x: 0, y: -10, w: VIEW.w, h: VIEW.h + 10 };
   const geo = useMemo(() => branchGeometry(DOMAINS), []);
   const roots = useMemo(() => rootGeometry(ROOTS), []);
   const trunk = useMemo(() => trunkGeometry(), []);
@@ -27,11 +27,14 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
     }));
   }, []);
 
+  const clampX = (x: number, chars: number, px: number) => {
+    const half = (chars * px * 0.7) / 2 + 8;
+    return Math.min(Math.max(x, vb.x + half), vb.x + vb.w - half);
+  };
   const fi = DOMAINS.findIndex((d) => d.id === focusId);
   const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
-  const cam = fi >= 0 ? { x: geo[fi]!.end.x, y: geo[fi]!.end.y + 10, s: mobile ? 2.4 : 2.7 } : { x: cx, y: cy, s: 1 };
-  const ty = mobile && fi >= 0 ? vb.y + vb.h * 0.28 : cy;
-  const transform = `translate(${cx}px, ${ty}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
+  const cam = fi >= 0 ? { x: geo[fi]!.end.x, y: geo[fi]!.end.y + 10, s: mobile ? 2.9 : 2.7 } : { x: cx, y: cy, s: 1 };
+    const transform = `translate(${cx}px, ${cy}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
 
   return (
     <svg
@@ -95,7 +98,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
               {r.label && (
                 <>
                   <circle cx={r.end.x} cy={r.end.y} r="3" fill="var(--gold)" filter="url(#halo)" />
-                  <text x={r.end.x} y={r.end.y + 20} textAnchor="middle" className="root-label">{r.label}</text>
+                  <text x={mobile ? clampX(r.end.x, r.label.length, 19) : r.end.x} y={r.end.y + 20 + (mobile && i % 4 === 2 ? 28 : 0)} textAnchor="middle" className="root-label">{r.label}</text>
                 </>
               )}
             </g>
@@ -131,7 +134,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
                 <circle cx={g.end.x} cy={g.end.y} r="60" fill="transparent" />
                 <circle cx={g.end.x} cy={g.end.y} r={active ? 4 : 6} fill={glow(d.hue, 0.92, 0.12)} filter="url(#halo)" className="core" />
                 {!focusId && (
-                  <text x={g.label.x} y={g.label.y} textAnchor="middle" className="branch-label"
+                  <text x={mobile ? clampX(g.label.x, d.name.split(" ")[0]!.length, 36) : g.label.x} y={g.label.y} textAnchor="middle" className="branch-label"
                     style={{ fill: glow(d.hue, 0.9, 0.11) }}>{d.name.split(" ")[0]}</text>
                 )}
               </g>
@@ -141,7 +144,8 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
                   const p = g.nodes[k]!;
                   const sel = selectedNode === n.id;
                   const above = p.y < g.end.y;
-                  const w = n.label.length * 3.3 + 10;
+                  const w = n.label.length * (mobile ? 5 : 3.3) + 10;
+                  const h = mobile ? 14 : 10;
                   return (
                     <g key={n.id} role="button" tabIndex={active ? 0 : -1} aria-label={n.label} className="subnode"
                       onClick={(e) => { e.stopPropagation(); onNode(n.id); }}
@@ -150,9 +154,9 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
                       <path d={g.reveal[k]} stroke={glow(d.hue, 0.85, 0.15)} strokeWidth="0.5" fill="none" className="sap" />
                       <circle cx={p.x} cy={p.y} r="14" fill="transparent" />
                       <circle cx={p.x} cy={p.y} r={sel ? 5.5 : 4} className={`kind-${n.kind}`} strokeWidth={sel ? 1.2 : 0.6} filter="url(#halo)" />
-                      <rect x={p.x - w / 2} y={p.y + (above ? -18 : 8)} width={w} height="10" rx="5"
+                      <rect x={p.x - w / 2} y={p.y + (above ? -8 - h : 8)} width={w} height={h} rx="5"
                         fill="var(--background)" fillOpacity="0.8" stroke={glow(d.hue, 0.8, 0.13)} strokeWidth={sel ? 0.8 : 0.35} />
-                      <text x={p.x} y={p.y + (above ? -11 : 15)} textAnchor="middle" className="sub-label">{n.label}</text>
+                      <text x={p.x} y={p.y + (above ? -8 - h * 0.3 : 8 + h * 0.7)} textAnchor="middle" className="sub-label">{n.label}</text>
                     </g>
                   );
                 })}

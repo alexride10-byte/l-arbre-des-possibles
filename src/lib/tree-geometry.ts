@@ -147,7 +147,7 @@ export function branchGeometry(domains: Domain[]): BranchGeo[] {
       leaves,
       nodes,
       reveal,
-      label: { x: end.x + Math.cos(tipAng) * 8, y: end.y - 46 },
+      label: (() => { const dx = end.x - 500, dy = end.y - 520, l = Math.hypot(dx, dy) || 1; return { x: end.x + (dx / l) * 70, y: end.y + (dy / l) * 78 + 6 }; })(),
     };
   });
 }
