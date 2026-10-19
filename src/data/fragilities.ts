@@ -68,4 +68,12 @@ export const FRAGILITIES: Fragility[] = [
     hypotheses: ["L'anticipation des transitions pourrait-elle aider ?", "Le vocabulaire émotionnel est-il disponible dans l'instant ?"],
     interventions: ["Coin calme identifié", "Roue des émotions", "Exercices de respiration courts"],
   },
+  {
+    id: "f-conflits", label: "Gestion des conflits",
+    intro: "Désaccords observés dans certains jeux collectifs, avec un recours à la médiation possible.",
+    domains: ["social", "emotionnel"], contexts: ["Entourage", "Contexte institutionnel"],
+    observations: [{ date: "06/10/2026", text: "Lors d'un désaccord sur les règles, Léo sollicite l'adulte après deux minutes." }],
+    hypotheses: ["Des règles explicites et une médiation pourraient-elles soutenir le dialogue ?"],
+    interventions: ["Reformuler les besoins de chacun", "Proposer une médiation adulte et des jeux coopératifs"],
+  },
 ];

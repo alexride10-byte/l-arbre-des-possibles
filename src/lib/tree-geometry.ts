@@ -88,8 +88,8 @@ function grow(from: P, ang: number, len: number, w: number, depth: number, r: ()
   const b = limb(from, ang, len, bend);
   twigs.push(taper(b, w, Math.max(0.6, w * 0.3), 14));
   if (depth === 0) {
-    leafCluster(b.p3, 7, 16, r, leaves);
-    leafCluster(bezAt(b, 0.6), 3, 10, r, leaves);
+    leafCluster(b.p3, 12, 20, r, leaves);
+    leafCluster(bezAt(b, 0.6), 5, 14, r, leaves);
     return;
   }
   const spread = 0.35 + r() * 0.35;
@@ -99,19 +99,21 @@ function grow(from: P, ang: number, len: number, w: number, depth: number, r: ()
 }
 
 export function branchGeometry(domains: Domain[]): BranchGeo[] {
-  const n = domains.length;
   return domains.map((d, i) => {
     const r = seeded(11 + i * 37);
-    const t = i / (n - 1);
-    const a = (-168 + 156 * t) * (Math.PI / 180);
-    const side = t < 0.5 ? -1 : 1;
-    const R = 270 + Math.sin(t * Math.PI) * 10;
-    const end = { x: TRUNK_TOP.x + R * Math.cos(a) * 1.15, y: TRUNK_TOP.y + R * Math.sin(a) * 0.95 };
-    const p0 = { x: TRUNK_TOP.x + (t - 0.5) * 50, y: TRUNK_TOP.y + 18 };
+    const crowns: Record<string, P> = {
+      emotionnel: { x: 500, y: 185 }, social: { x: 735, y: 225 },
+      cognitif: { x: 265, y: 300 }, scolaire: { x: 755, y: 365 },
+      sante: { x: 285, y: 465 }, autonomie: { x: 305, y: 165 },
+      environnement: { x: 740, y: 505 },
+    };
+    const end = crowns[d.id] ?? { x: 500, y: 200 };
+    const side = end.x < 500 ? -1 : 1;
+    const p0 = { x: 500 + side * 14, y: 510 + (end.y > 400 ? 55 : 0) };
     const main: Bez = {
       p0,
-      c1: { x: p0.x + (end.x - p0.x) * 0.15, y: p0.y - 90 - Math.abs(t - 0.5) * 40 },
-      c2: { x: p0.x + (end.x - p0.x) * 0.6, y: end.y + 40 + Math.abs(t - 0.5) * 60 },
+      c1: { x: p0.x + (end.x - p0.x) * 0.15, y: p0.y - 115 },
+      c2: { x: p0.x + (end.x - p0.x) * 0.6, y: end.y + 75 },
       p3: end,
     };
     const tipAng = Math.atan2(end.y - main.c2.y, end.x - main.c2.x);
@@ -119,10 +121,10 @@ export function branchGeometry(domains: Domain[]): BranchGeo[] {
     const twigs: string[] = [];
     const leaves: Leaf[] = [];
     // Sous-branches latérales qui se divisent
-    for (const [tt, off, len] of [[0.42, -0.75, 95], [0.62, 0.55, 80], [0.8, -0.5, 70]] as const) {
+    for (const [tt, off, len] of [[0.32, -0.65, 78], [0.48, 0.65, 90], [0.65, -0.55, 82], [0.83, 0.5, 68]] as const) {
       const p = bezAt(main, tt), tg = tangent(main, tt);
       const ang = Math.atan2(tg.y, tg.x) + off * side * (side < 0 ? -1 : 1) + (r() - 0.5) * 0.3;
-      grow(p, ang - 0.25, len, 7 - tt * 4, 2, r, twigs, leaves);
+      grow(p, ang - 0.25, len, 8 - tt * 4, 3, r, twigs, leaves);
     }
     // Couronne au bout de la branche
     grow(end, tipAng - 0.4, 60, 4, 1, r, twigs, leaves);
@@ -141,13 +143,13 @@ export function branchGeometry(domains: Domain[]): BranchGeo[] {
 
     return {
       end,
-      body: taper(main, 26, 5),
+      body: taper(main, 36, 5),
       spine: bezD(main),
       twigs,
       leaves,
       nodes,
       reveal,
-      label: (() => { const dx = end.x - 500, dy = end.y - 520, l = Math.hypot(dx, dy) || 1; return { x: end.x + (dx / l) * 70, y: end.y + (dy / l) * 78 + 6 }; })(),
+      label: { x: end.x, y: end.y - 24 },
     };
   });
 }
@@ -177,8 +179,8 @@ export function rootGeometry(labels: string[]): RootGeo[] {
 
 /** Tronc large et évasé, avec veines d'écorce. */
 export function trunkGeometry() {
-  const b: Bez = { p0: { x: 500, y: GROUND_Y + 6 }, c1: { x: 478, y: 580 }, c2: { x: 520, y: 500 }, p3: { x: 500, y: TRUNK_TOP.y } };
-  const body = taper(b, 150, 70, 30);
+  const b: Bez = { p0: { x: 500, y: GROUND_Y + 6 }, c1: { x: 478, y: 580 }, c2: { x: 520, y: 500 }, p3: { x: 500, y: 365 } };
+  const body = taper(b, 170, 42, 40);
   const veins = Array.from({ length: 9 }, (_, i) => {
     const o = (i - 4) / 4;
     return `M${f(500 + o * 62)},${f(GROUND_Y)} C${f(478 + o * 45)},580 ${f(520 + o * 32)},505 ${f(500 + o * 26)},${TRUNK_TOP.y + 5}`;

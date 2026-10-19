@@ -258,3 +258,40 @@
 @media (max-width: 767px) { .frag-label { font-size: 16px; } }
 .branch > path, .foliage { pointer-events: none; }
 .branch-hit .branch-label { pointer-events: auto; cursor: pointer; }
+
+/* Enfance+ — spectrum carried by the wood and foliage, not just the labels. */
+:root {
+  --domain-emotionnel: oklch(0.86 0.17 83);
+  --domain-social: oklch(0.73 0.23 315);
+  --domain-cognitif: oklch(0.76 0.18 240);
+  --domain-scolaire: oklch(0.79 0.19 55);
+  --domain-sante: oklch(0.73 0.2 23);
+  --domain-autonomie: oklch(0.78 0.18 155);
+  --domain-environnement: oklch(0.82 0.15 185);
+  --panel-shadow: 0 12px 40px color-mix(in oklab, var(--background) 70%, transparent);
+}
+.glass-panel { border-radius: 8px; box-shadow: var(--panel-shadow); }
+.branch-label { font-family: var(--font-sans); font-style: normal; font-size: 23px; letter-spacing: 0; stroke-width: 7px; }
+.root-label { font-size: 14px; letter-spacing: 0; text-transform: none; }
+.frag-label { font-size: 16px; letter-spacing: 0; }
+.challenge-title { fill: var(--fragility); font-size: 17px; letter-spacing: 0; paint-order: stroke; stroke: var(--background); stroke-width: 5px; }
+.roots path, .camera > path, .camera > ellipse { pointer-events: none; }
+.tree-frame { isolation: isolate; }
+@media (max-width: 767px) {
+  .branch-label { font-size: 29px; }
+  .root-label { font-size: 21px; }
+  .frag-label { font-size: 22px; }
+  .challenge-title { font-size: 23px; }
+}
+.factor-hit { cursor: pointer; outline: none; }
+.factor-hit:hover rect, .factor-hit:focus-visible rect { stroke-width: 3px; }
+.factor-label { fill: var(--foreground); font-family: var(--font-sans); font-size: 20px; letter-spacing: 0; pointer-events: none; }
+.factor-network { animation: network-in .6s ease both; }
+@keyframes network-in { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 767px) {
+  .factor-label { font-size: 23px; }
+  .tree-frame:has(.factor-network) .camera { transform: translate(500px,415px) scale(1.18) translate(-500px,-380px) !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-flow, .factor-network, .panel-enter, .subnodes, .subnodes > g { animation: none !important; transition: none !important; }
+}

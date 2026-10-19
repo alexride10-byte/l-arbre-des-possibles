@@ -15,3 +15,4 @@
 - Storage and AI go through interfaces in `src/lib/services.ts` — so a local store / local AI can be plugged in later without touching UI.
 - Page layout pieces (profile sidebar, follow-up zone) live in `src/components/layout/`; fragility and quest sample data in `src/data/fragilities.ts` / `src/data/quests.ts` — keeps tree visuals independent of the dashboard shell.
 - Tree decorative paths (bark, foliage) must stay `pointer-events: none`; only hit groups, labels and nodes receive clicks — otherwise neighbouring leaves swallow clicks.
+- Shared contextual factors live in `src/data/factors.ts`; `FactorNetwork` and `FactorPanel` consume the same associations while the page retains fragility selection — returning from a factor preserves the exploration network.
