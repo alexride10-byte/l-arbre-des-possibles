@@ -30,7 +30,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
   const fi = DOMAINS.findIndex((d) => d.id === focusId);
   const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
   const cam = fi >= 0 ? { x: geo[fi]!.end.x, y: geo[fi]!.end.y + 10, s: mobile ? 2.4 : 2.7 } : { x: cx, y: cy, s: 1 };
-  const ty = mobile && fi >= 0 ? vb.y + vb.h * 0.2 : cy;
+  const ty = mobile && fi >= 0 ? vb.y + vb.h * 0.28 : cy;
   const transform = `translate(${cx}px, ${ty}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
 
   return (
