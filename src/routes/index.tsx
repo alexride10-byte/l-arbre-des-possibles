@@ -54,7 +54,7 @@ function Index() {
       </div>
 
       {!focus && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 text-center">
+        <div className="pointer-events-none absolute inset-x-0 top-20 z-10 text-center">
           <p className="text-sm text-muted-foreground">Choisissez une branche pour explorer un domaine</p>
           <p className="mt-1 text-xs text-muted-foreground/70">Les liens pointillés indiquent des proximités possibles, non des causalités.</p>
         </div>

@@ -115,7 +115,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
                 <path d={g.path} stroke="transparent" strokeWidth="34" fill="none" />
                 <circle cx={g.end.x} cy={g.end.y} r="38" fill={glow(d.hue, 0.7, 0.12)} opacity="0.25" filter="url(#soft)" />
                 <circle cx={g.end.x} cy={g.end.y} r={active ? 9 : 13} fill={glow(d.hue, 0.88)} filter="url(#halo)" className="core" />
-                {!active && (
+                {!focusId && (
                   <text x={g.end.x} y={g.end.y - 26} textAnchor="middle" className="branch-label">{d.name}</text>
                 )}
               </g>
