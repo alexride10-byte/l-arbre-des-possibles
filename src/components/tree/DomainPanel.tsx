@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { KIND_LABEL, type Domain } from "@/data/domains";
 import { ExampleSheetView } from "./ExampleSheet";
+import { ObservationsEditor } from "./ObservationsEditor";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -72,6 +73,8 @@ export function DomainPanel({ domain, selectedNode, onNode, onBack }: {
                 ))}
               </ul>
             </Section>
+
+            <ObservationsEditor domainId={domain.id} />
 
             <Section title="Pistes d'accompagnement"><List items={domain.pistes} /></Section>
 

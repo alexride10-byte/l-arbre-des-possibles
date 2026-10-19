@@ -14,6 +14,7 @@ export interface ObservationRepository {
   list(domainId?: string): Promise<Observation[]>;
   save(o: Observation): Promise<void>;
   remove(id: string): Promise<void>;
+}
 
 /** Assistant IA interchangeable (ex. futur modèle local). */
 export interface AssistantProvider {

@@ -11,4 +11,5 @@
 
 ## Enfance+ architecture
 - Sample data lives in `src/data/`, SVG geometry in `src/lib/tree-geometry.ts`, visual components in `src/components/tree/` — keeps data, logic and visuals swappable.
+- Observations persist via `src/lib/local-observations.ts` (browser localStorage, no network); swap the repository for encrypted/desktop storage later.
 - Storage and AI go through interfaces in `src/lib/services.ts` — so a local store / local AI can be plugged in later without touching UI.

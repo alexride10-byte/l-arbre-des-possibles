@@ -226,3 +226,6 @@
 @keyframes pulse { 0%,100% { opacity: 0.85; } 50% { opacity: 1; } }
 @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .camera, .sap, .particle, .core { animation: none; transition: none; } }
+
+.field { width: 100%; border-radius: 0.5rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--background) 60%, transparent); padding: 0.45rem 0.65rem; font-size: 0.85rem; color: var(--foreground); outline: none; color-scheme: dark; }
+.field:focus { border-color: var(--gold); }
