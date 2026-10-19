@@ -94,7 +94,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
               {r.label && (
                 <>
                   <circle cx={r.end.x} cy={r.end.y} r="3" fill="var(--gold)" filter="url(#halo)" />
-                  <text x={r.end.x} y={r.end.y + 20} textAnchor="middle" className="root-label">{r.label}</text>
+                  <text x={r.end.x} y={r.end.y + 20 + (mobile && i % 4 === 2 ? 28 : 0)} textAnchor="middle" className="root-label">{r.label}</text>
                 </>
               )}
             </g>

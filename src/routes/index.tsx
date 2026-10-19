@@ -49,12 +49,12 @@ function Index() {
         </nav>
       </header>
 
-      <div className={`absolute inset-x-0 bottom-0 transition-all duration-700 md:top-0 ${focus ? "top-14 max-md:bottom-[52%] md:right-[420px]" : "top-28"}`}>
+      <div className={`absolute inset-x-0 bottom-0 transition-all duration-700 md:top-14 ${focus ? "top-14 max-md:bottom-[52%] md:right-[420px]" : "top-28"}`}>
         <LifeTree focusId={focus} selectedNode={node} onFocus={open} onNode={setNode} onBack={back} />
       </div>
 
       {!focus && (
-        <div className="pointer-events-none absolute inset-x-0 top-16 z-10 px-4 text-center md:top-6">
+        <div className="pointer-events-none absolute inset-x-0 top-16 z-10 px-4 text-center">
           <p className="text-sm text-muted-foreground">Choisissez une branche pour explorer un domaine</p>
           <p className="mt-1 hidden text-xs text-muted-foreground/70 sm:block">Les liens pointillés indiquent des proximités possibles, non des causalités.</p>
         </div>
