@@ -330,3 +330,7 @@
 @media(min-width:1500px) { .dashboard-grid { grid-template-columns:235px minmax(0,1fr) 340px; } }
 @media(max-width:1023px) { .scene-heading { padding-top:0; } }
 @media(prefers-reduced-motion:reduce) { .camera, .anxiety-discovery, .mobile-details .panel-enter { animation:none; transition:none; } }
+
+:root { --accent:var(--muted); --accent-foreground:var(--foreground); --secondary:var(--muted); --secondary-foreground:var(--foreground); }
+.sub-label { font-size:9px; }
+.timeline-item { min-height:90px; }

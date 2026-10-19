@@ -132,10 +132,10 @@ export function branchGeometry(domains: Domain[]): BranchGeo[] {
     leafCluster(end, 14, 34, r, leaves);
 
     // Nœuds répartis dans le feuillage, côté extérieur
-    const nodes = d.nodes.map((_, k) => {
-      const ang = tipAng + (k / Math.max(1, d.nodes.length - 1) - 0.5) * 2.8;
-      return { x: end.x + Math.cos(ang) * 72, y: end.y + Math.sin(ang) * 62 };
-    });
+    const nodes = d.nodes.map((_, k) => ({
+      x: end.x + (k % 2 === 0 ? -88 : 88),
+      y: end.y - 52 + Math.floor(k / 2) * 92,
+    }));
     const reveal = nodes.map((p) => {
       const mx = (end.x + p.x) / 2 + (p.y - end.y) * 0.25, my = (end.y + p.y) / 2 - (p.x - end.x) * 0.25;
       return `M${f(end.x)},${f(end.y)} Q${f(mx)},${f(my)} ${f(p.x)},${f(p.y)}`;

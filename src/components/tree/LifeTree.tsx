@@ -195,8 +195,8 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
                   if (!p) return null;
                   const sel = selectedNode === n.id;
                   const above = p.y < g.end.y;
-                  const w = n.label.length * (mobile ? 5 : 3.3) + 10;
-                  const h = mobile ? 14 : 10;
+                  const w = n.label.length * 5.7 + 16;
+                  const h = 18;
                   return (
                     <g key={n.id} style={{ transition: "opacity .5s, transform .6s", transitionDelay: active ? `${250 + k * 140}ms` : "0ms", opacity: active ? 1 : 0, transform: active ? "none" : `translate(${(g.end.x - p.x) * 0.6}px, ${(g.end.y - p.y) * 0.6}px)` }} role="button" tabIndex={active ? 0 : -1} aria-label={n.label} className="subnode"
                       onClick={(e) => { e.stopPropagation(); onNode(n.id); }}

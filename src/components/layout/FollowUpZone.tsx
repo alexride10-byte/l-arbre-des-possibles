@@ -28,7 +28,7 @@ export function FollowUpZone({ onDomain, onFragility }: { onDomain: (id: string)
         <div className="flex flex-1 items-stretch gap-3 overflow-x-auto px-4 py-3">
           {events.map((e, i) => (
             <Button variant="ghost" key={i} onClick={() => e.type === "domain" ? onDomain(e.id) : onFragility(e.id)}
-              className="timeline-item w-56 shrink-0 text-left" style={{ ["--h" as string]: `oklch(0.8 0.14 ${e.hue})` }}>
+              className="timeline-item h-auto w-56 shrink-0 flex-col items-start justify-start whitespace-normal text-left" style={{ ["--h" as string]: `oklch(0.8 0.14 ${e.hue})` }}>
               <p className="tag">{e.date} · {e.label}</p>
               <p className="mt-1 line-clamp-3 text-xs text-foreground/85">{e.text}</p>
             </Button>
