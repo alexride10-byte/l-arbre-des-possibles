@@ -229,8 +229,8 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
 
         <svg x="444" y="455" width="112" height="146" pointerEvents="none" opacity={focusId || frag ? .3 : 1}><AvatarIllustration options={avatar} /></svg>
         {focusId === "emotionnel" && !frag && <g className="subnode anxiety-discovery" role="button" tabIndex={0} aria-label="Fragilité : Anxiété" onClick={(e) => { e.stopPropagation(); onFragility?.("f-anxiete"); }} onKeyDown={(e) => { if (e.key === "Enter") onFragility?.("f-anxiete"); }}>
-          <path d={`M${focusedGeo?.end.x ?? 500},${focusedGeo?.end.y ?? 185} Q570,275 575,325`} stroke="var(--fragility)" strokeWidth="1" fill="none" className="sap" pointerEvents="none" />
-          <rect x="535" y="310" width="95" height="29" rx="8" fill="var(--background)" stroke="var(--fragility)" /><AlertTriangle x="542" y="317" width="15" height="15" color="var(--fragility)" pointerEvents="none" /><text x="564" y="329" className="discovery-label" pointerEvents="none">Anxiété</text>
+          <path d={`M${focusedGeo?.end.x ?? 500},${focusedGeo?.end.y ?? 185} Q610,195 650,210`} stroke="var(--fragility)" strokeWidth="1" fill="none" className="sap" pointerEvents="none" />
+          <rect x="625" y="195" width="95" height="29" rx="8" fill="var(--background)" stroke="var(--fragility)" /><AlertTriangle x="632" y="202" width="15" height="15" color="var(--fragility)" pointerEvents="none" /><text x="654" y="214" className="discovery-label" pointerEvents="none">Anxiété</text>
         </g>}
         {/* Défis et fragilités : nœuds distincts (losanges), liens = relations possibles */}
         {frag && onFactor && <FactorNetwork fragilityId={frag.id} selectedFactor={selectedFactor ?? null} onFactor={onFactor} />}
