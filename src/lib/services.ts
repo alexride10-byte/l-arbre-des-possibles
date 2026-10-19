@@ -6,7 +6,7 @@ export interface Observation {
   domainId: string;
   date: string;
   fact: string;
-  context?: string;
+  context?: string | undefined;
 }
 
 /** Stockage interchangeable (ex. futur stockage local chiffré, appli bureau). */
@@ -14,6 +14,7 @@ export interface ObservationRepository {
   list(domainId?: string): Promise<Observation[]>;
   save(o: Observation): Promise<void>;
   remove(id: string): Promise<void>;
+}
 
 /** Assistant IA interchangeable (ex. futur modèle local). */
 export interface AssistantProvider {
