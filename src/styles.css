@@ -235,5 +235,5 @@
 @media (max-width: 767px) {
   .branch-label { font-size: 36px; stroke-width: 7px; }
   .root-label { font-size: 19px; letter-spacing: 0.08em; }
-  .sub-label { font-size: 7px; }
+  .sub-label { font-size: 8.5px; }
 }
