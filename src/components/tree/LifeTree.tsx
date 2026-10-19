@@ -79,9 +79,9 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
       ))}
 
       <g className="camera" style={{ transform }}>
-        <ellipse cx="500" cy="330" rx="480" ry="330" fill="url(#aura)" />
+        <ellipse cx="500" cy="330" rx="480" ry="330" fill="url(#aura)" pointerEvents="none" />
         {DOMAINS.map((d, i) => (
-          <circle key={d.id} cx={geo[i]!.end.x} cy={geo[i]!.end.y} r="85" fill={glow(d.hue, 0.6, 0.12)} opacity="0.22" filter="url(#soft)" />
+          <circle key={d.id} cx={geo[i]!.end.x} cy={geo[i]!.end.y} r="85" fill={glow(d.hue, 0.6, 0.12)} opacity="0.22" filter="url(#soft)" pointerEvents="none" />
         ))}
         <ellipse cx="500" cy="645" rx="380" ry="20" fill="var(--tree-aura)" opacity="0.18" filter="url(#soft)" />
 

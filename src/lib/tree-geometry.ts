@@ -152,7 +152,7 @@ export function branchGeometry(domains: Domain[]): BranchGeo[] {
   });
 }
 
-export interface RootGeo { body: string; spine: string; end: P; label?: string }
+export interface RootGeo { body: string; spine: string; end: P; label?: string | undefined }
 
 export function rootGeometry(labels: string[]): RootGeo[] {
   const r = seeded(99);
