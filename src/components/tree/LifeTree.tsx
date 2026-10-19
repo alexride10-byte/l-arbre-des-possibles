@@ -27,9 +27,13 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
     }));
   }, []);
 
+  const clampX = (x: number, chars: number, px: number) => {
+    const half = (chars * px * 0.55) / 2 + 8;
+    return Math.min(Math.max(x, vb.x + half), vb.x + vb.w - half);
+  };
   const fi = DOMAINS.findIndex((d) => d.id === focusId);
   const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
-  const cam = fi >= 0 ? { x: geo[fi]!.end.x, y: geo[fi]!.end.y + 10, s: mobile ? 2.2 : 2.7 } : { x: cx, y: cy, s: 1 };
+  const cam = fi >= 0 ? { x: geo[fi]!.end.x, y: geo[fi]!.end.y + 10, s: mobile ? 2.9 : 2.7 } : { x: cx, y: cy, s: 1 };
     const transform = `translate(${cx}px, ${cy}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
 
   return (
@@ -94,7 +98,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
               {r.label && (
                 <>
                   <circle cx={r.end.x} cy={r.end.y} r="3" fill="var(--gold)" filter="url(#halo)" />
-                  <text x={r.end.x} y={r.end.y + 20 + (mobile && i % 4 === 2 ? 28 : 0)} textAnchor="middle" className="root-label">{r.label}</text>
+                  <text x={mobile ? clampX(r.end.x, r.label.length, 19) : r.end.x} y={r.end.y + 20 + (mobile && i % 4 === 2 ? 28 : 0)} textAnchor="middle" className="root-label">{r.label}</text>
                 </>
               )}
             </g>
@@ -130,7 +134,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
                 <circle cx={g.end.x} cy={g.end.y} r="60" fill="transparent" />
                 <circle cx={g.end.x} cy={g.end.y} r={active ? 4 : 6} fill={glow(d.hue, 0.92, 0.12)} filter="url(#halo)" className="core" />
                 {!focusId && (
-                  <text x={g.label.x} y={g.label.y} textAnchor="middle" className="branch-label"
+                  <text x={mobile ? clampX(g.label.x, d.name.split(" ")[0]!.length, 36) : g.label.x} y={g.label.y} textAnchor="middle" className="branch-label"
                     style={{ fill: glow(d.hue, 0.9, 0.11) }}>{d.name.split(" ")[0]}</text>
                 )}
               </g>
