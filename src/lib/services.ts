@@ -6,7 +6,7 @@ export interface Observation {
   domainId: string;
   date: string;
   fact: string;
-  context?: string;
+  context?: string | undefined;
 }
 
 /** Stockage interchangeable (ex. futur stockage local chiffré, appli bureau). */
