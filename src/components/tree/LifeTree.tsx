@@ -3,6 +3,7 @@ import { DOMAINS, ROOTS, type Domain } from "@/data/domains";
 import { branchGeometry, rootGeometry, trunkGeometry, seeded, VIEW } from "@/lib/tree-geometry";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Heart, Users, Brain, BookOpen, Activity, Sprout, House, AlertTriangle, Zap, Focus, Moon, Wind, Handshake } from "lucide-react";
+import { FactorNetwork } from "./FactorNetwork";
 import { FRAGILITIES } from "@/data/fragilities";
 
 const FRAG_POS = [{ x: 230, y: 624 }, { x: 340, y: 658 }, { x: 450, y: 634 }, { x: 560, y: 658 }, { x: 670, y: 634 }, { x: 780, y: 658 }];
@@ -22,9 +23,11 @@ interface Props {
   hidden?: string[];
   fragilityId?: string | null;
   onFragility?: (id: string) => void;
+  onFactor?: (id: string) => void;
+  selectedFactor?: string | null;
 }
 
-export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidden = [], fragilityId = null, onFragility }: Props) {
+export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidden = [], fragilityId = null, onFragility, onFactor, selectedFactor }: Props) {
   const mobile = useIsMobile();
   const vb = { x: 0, y: 0, w: VIEW.w, h: 830 };
   const geo = useMemo(() => branchGeometry(DOMAINS), []);
@@ -114,10 +117,10 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
             <g key={i}>
               <path d={r.body} fill="url(#barkV)" opacity={r.label ? 0.95 : 0.6} />
               <path d={r.spine} stroke="var(--tree-aura)" strokeWidth="0.8" fill="none" opacity="0.5" className="sap" />
-              {r.label && (
+              {r.label && !frag && (
                 <>
                   <circle cx={r.end.x} cy={r.end.y} r="3" fill="var(--gold)" filter="url(#halo)" />
-                  <text x={clampX(r.end.x, r.label.length, mobile ? 19 : 11)} y={r.end.y + 20 + (mobile && i % 4 === 2 ? 28 : 0)} textAnchor="middle" className="root-label">{r.label}</text>
+                  <text x={clampX(r.end.x, r.label.length, mobile ? 19 : 11)} y={r.end.y + 25 + (i % 4 === 2 ? 20 : 0)} textAnchor="middle" className="root-label">{r.label}</text>
                 </>
               )}
             </g>
@@ -131,10 +134,10 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
           const Icon = DOMAIN_ICONS[i] ?? Sprout;
           const active = focusId === d.id;
           const off = hidden.includes(d.id);
-          const linked = frag?.domains.includes(d.id);
-          const dim = (focusId && !active) || (frag && !linked);
+          
+          const dim = (focusId && !active) || !!frag;
           return (
-            <g key={d.id} className="branch" style={{ opacity: off ? 0.08 : dim ? 0.3 : 1, pointerEvents: off ? "none" : undefined }}>
+            <g key={d.id} className="branch" style={{ opacity: off ? 0.08 : dim ? 0.16 : 1, pointerEvents: off ? "none" : undefined }}>
               {g.twigs.map((t, k) => <path key={k} d={t} fill={`url(#wood-${d.id})`} />)}
               <path d={g.body} fill={`url(#wood-${d.id})`} />
               <path d={g.body} fill="var(--bark-light)" filter="url(#grain)" />
@@ -204,7 +207,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
         <ellipse cx="500" cy="470" rx="100" ry="150" fill="url(#heart)" className="core" pointerEvents="none" />
 
         {/* Défis et fragilités : nœuds distincts (losanges), liens = relations possibles */}
-        {frag && FRAG_POS[fragIdx] && (
+        {false && frag && FRAG_POS[fragIdx] && (
           <g pointerEvents="none" className="frag-links">
             {frag.domains.map((id) => {
               const k = DOMAINS.findIndex((d) => d.id === id); const e = geo[k]?.end; const s0 = FRAG_POS[fragIdx];
@@ -218,7 +221,8 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
             })}
           </g>
         )}
-        {!focusId && <text x="500" y="590" textAnchor="middle" className="challenge-title">DÉFIS ET FRAGILITÉS ÉVOLUTIVES</text>}
+        {frag && onFactor && <FactorNetwork fragilityId={frag.id} selectedFactor={selectedFactor} onFactor={onFactor} />}
+        {!focusId && !frag && <text x="500" y="590" textAnchor="middle" className="challenge-title">DÉFIS ET FRAGILITÉS ÉVOLUTIVES</text>}
         <g style={{ opacity: focusId ? 0.25 : 1, transition: "opacity .6s" }}>
           {FRAGILITIES.map((f, i) => {
             const p = FRAG_POS[i]; if (!p) return null; const FragIcon = FRAG_ICONS[i] ?? AlertTriangle; const sel = f.id === fragilityId;

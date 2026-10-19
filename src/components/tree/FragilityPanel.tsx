@@ -1,7 +1,10 @@
+import { factorsFor } from "@/data/factors";
+import { Button } from "@/components/ui/button";
+import { ArrowUpRight } from "lucide-react";
 import type { Fragility } from "@/data/fragilities";
 import { DOMAINS } from "@/data/domains";
 
-export function FragilityPanel({ f, onBack, onDomain }: { f: Fragility; onBack: () => void; onDomain: (id: string) => void }) {
+export function FragilityPanel({ f, onBack, onDomain, onFactor }: { f: Fragility; onBack: () => void; onDomain: (id: string) => void; onFactor: (id: string) => void }) {
   return (
     <aside className="glass-panel panel-enter flex max-h-full flex-col overflow-hidden">
       <header className="flex items-start justify-between gap-4 border-b border-border/60 p-5">
@@ -24,15 +27,19 @@ export function FragilityPanel({ f, onBack, onDomain }: { f: Fragility; onBack: 
           <div className="flex flex-wrap gap-2">{f.contexts.map((c) => <span key={c} className="chip">{c}</span>)}</div>
         </section>
         <section className="space-y-2">
-          <h3 className="eyebrow">Relations possibles</h3>
+          <h3 className="eyebrow">Facteurs possibles à examiner</h3>
+          <div className="grid gap-2">{factorsFor(f.id).map((factor) => <Button key={factor.id} variant="outline" className="justify-between whitespace-normal text-left" onClick={() => onFactor(factor.id)}>{factor.label}<ArrowUpRight /></Button>)}</div>
+          <h3 className="eyebrow pt-3">Domaines associés</h3>
           <div className="flex flex-wrap gap-2">
             {f.domains.map((id) => {
-              const d = DOMAINS.find((x) => x.id === id)!;
+              const d = DOMAINS.find((x) => x.id === id);
+              if (!d) return null;
               return <button key={id} onClick={() => onDomain(id)} className="chip" style={{ color: `oklch(0.85 0.13 ${d.hue})` }}>{d.name} →</button>;
             })}
           </div>
           <p className="text-xs text-muted-foreground/80">Ces liens sont des pistes d'examen, pas des causes démontrées.</p>
         </section>
+        <section className="space-y-2"><h3 className="eyebrow">Propos rapportés et informations inconnues</h3><p>Aucun autre propos consigné dans cette fiche fictive. Les circonstances hors de l'observation restent à recueillir.</p></section>
         <section className="space-y-2">
           <h3 className="eyebrow">Hypothèses à examiner</h3>
           {f.hypotheses.map((h) => <div key={h} className="sheet-block sheet-hypo">{h}</div>)}

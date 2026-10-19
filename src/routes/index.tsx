@@ -6,6 +6,9 @@ import { DomainPanel } from "@/components/tree/DomainPanel";
 import { FragilityPanel } from "@/components/tree/FragilityPanel";
 import { ProfileSidebar } from "@/components/layout/ProfileSidebar";
 import { FollowUpZone } from "@/components/layout/FollowUpZone";
+import { FactorPanel } from "@/components/tree/FactorPanel";
+import { FACTORS } from "@/data/factors";
+import { Button } from "@/components/ui/button";
 import { FRAGILITIES } from "@/data/fragilities";
 
 export const Route = createFileRoute("/")({
@@ -28,15 +31,17 @@ function Index() {
   const [focus, setFocus] = useState<string | null>(null);
   const [node, setNode] = useState<string | null>(null);
   const [frag, setFrag] = useState<string | null>(null);
+  const [factorId, setFactorId] = useState<string | null>(null);
+  const factor = FACTORS.find((f) => f.id === factorId);
   const [hidden, setHidden] = useState<string[]>([]);
   const [drawer, setDrawer] = useState<null | "profil" | "suivi">(null);
   const domain = DOMAINS.find((d) => d.id === focus);
   const fragility = FRAGILITIES.find((f) => f.id === frag);
   const selected = !!(domain || fragility);
 
-  const back = () => { setFocus(null); setNode(null); setFrag(null); };
-  const open = (id: string) => { setFrag(null); setFocus(id); setNode(null); setHidden((h) => h.filter((x) => x !== id)); setDrawer(null); };
-  const openFrag = (id: string) => { setFocus(null); setNode(null); setFrag(id); };
+  const back = () => { setFocus(null); setNode(null); setFrag(null); setFactorId(null); };
+  const open = (id: string) => { setFactorId(null); setFrag(null); setFocus(id); setNode(null); setHidden((h) => h.filter((x) => x !== id)); setDrawer(null); };
+  const openFrag = (id: string) => { setFocus(null); setNode(null); setFrag(id); setFactorId(null); setDrawer(null); };
   const toggle = (id: string) => setHidden((h) => (h.includes(id) ? h.filter((x) => x !== id) : [...h, id]));
 
   useEffect(() => {
@@ -57,7 +62,7 @@ function Index() {
         </nav>
         <div className="ml-auto flex items-center gap-2 md:hidden">
           {selected ? (
-            <button onClick={back} aria-label="Revenir à l'arbre complet" className="btn-back">← Arbre complet</button>
+            <Button variant="ghost" onClick={back} aria-label="Revenir à l'arbre complet" className="btn-back">← Arbre complet</Button>
           ) : (
             <>
               <button className="btn-ghost" onClick={() => setDrawer(drawer === "profil" ? null : "profil")}>Profil</button>
@@ -69,36 +74,36 @@ function Index() {
       </header>
 
       <div className="flex min-h-0 flex-1 gap-3 p-3">
-        <div className="hidden w-60 shrink-0 md:block">
+        <div className="hidden w-52 shrink-0 lg:block">
           <ProfileSidebar hidden={hidden} onToggle={toggle} onOpen={open} />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className={`relative min-h-0 flex-1 transition-all duration-700 ${selected ? "max-md:flex-[0_0_46%]" : ""}`}>
+          <div className={`tree-frame relative min-h-0 flex-1 transition-all duration-700 ${selected ? "max-md:flex-[0_0_44%]" : ""}`}>
             {!selected && (
               <p className="pointer-events-none absolute inset-x-0 top-1 z-10 text-center text-xs text-muted-foreground">
                 Choisissez une branche ou un losange de fragilité
               </p>
             )}
             {selected && (
-              <button onClick={back} aria-label="Revenir à l'arbre complet" className="btn-back absolute left-2 top-2 z-20 hidden md:block">← Arbre complet</button>
+              <Button variant="ghost" onClick={back} aria-label="Revenir à l'arbre complet" className="btn-back absolute left-2 top-2 z-20 hidden md:block">← Arbre complet</Button>
             )}
             <LifeTree focusId={focus} selectedNode={node} onFocus={open} onNode={setNode} onBack={back}
-              hidden={hidden} fragilityId={frag} onFragility={openFrag} />
+              hidden={hidden} fragilityId={frag} onFragility={openFrag} onFactor={setFactorId} selectedFactor={factorId} />
           </div>
           <div className="hidden h-44 shrink-0 md:block"><FollowUpZone onDomain={open} /></div>
           {selected && (
             <div className="min-h-0 flex-1 md:hidden">
               {domain && <DomainPanel key={domain.id} domain={domain} selectedNode={node} onNode={setNode} onBack={back} />}
-              {fragility && <FragilityPanel key={fragility.id} f={fragility} onBack={back} onDomain={open} />}
+              {factor ? <FactorPanel factor={factor} onNetwork={() => setFactorId(null)} onBack={back} /> : fragility && <FragilityPanel key={fragility.id} f={fragility} onBack={back} onDomain={open} onFactor={setFactorId} />}
             </div>
           )}
         </div>
 
         {selected && (
-          <div className="hidden w-[380px] shrink-0 md:block">
+          <div className="hidden w-[340px] lg:w-[380px] shrink-0 md:block">
             {domain && <DomainPanel key={domain.id} domain={domain} selectedNode={node} onNode={setNode} onBack={back} />}
-            {fragility && <FragilityPanel key={fragility.id} f={fragility} onBack={back} onDomain={open} />}
+            {factor ? <FactorPanel factor={factor} onNetwork={() => setFactorId(null)} onBack={back} /> : fragility && <FragilityPanel key={fragility.id} f={fragility} onBack={back} onDomain={open} onFactor={setFactorId} />}
           </div>
         )}
       </div>
