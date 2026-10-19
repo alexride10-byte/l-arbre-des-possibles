@@ -22,7 +22,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
   }, []);
 
   const fi = DOMAINS.findIndex((d) => d.id === focusId);
-  const cam = fi >= 0 ? { x: geo[fi].end.x + 40, y: geo[fi].end.y + 10, s: 2.6 } : { x: 500, y: 410, s: 1 };
+  const cam = fi >= 0 ? { x: geo[fi]!.end.x + 40, y: geo[fi]!.end.y + 10, s: 2.6 } : { x: 500, y: 410, s: 1 };
   const transform = `translate(${VIEW.w / 2}px, ${VIEW.h / 2}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
 
   const roots = ROOTS.map((label, i) => {
@@ -99,7 +99,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
 
         {/* Branches */}
         {DOMAINS.map((d: Domain, i) => {
-          const g = geo[i];
+          const g = geo[i]!;
           const active = focusId === d.id;
           const dim = focusId && !active;
           return (
@@ -122,7 +122,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
               {/* Sous-nœuds */}
               <g style={{ opacity: active ? 1 : 0, pointerEvents: active ? "auto" : "none" }} className="subnodes">
                 {d.nodes.map((n, k) => {
-                  const p = g.nodes[k];
+                  const p = g.nodes[k]!;
                   const sel = selectedNode === n.id;
                   return (
                     <g key={n.id} role="button" tabIndex={active ? 0 : -1} aria-label={n.label} className="subnode"
