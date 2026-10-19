@@ -145,6 +145,7 @@
   --muted-foreground: oklch(0.72 0.03 225);
   --border: oklch(0.85 0.05 200 / 18%);
   --gold: oklch(0.83 0.12 85);
+  --fragility: oklch(0.72 0.16 15);
   --tree-aura: oklch(0.7 0.12 195);
   --bark-dark: oklch(0.22 0.03 240);
   --bark-light: oklch(0.42 0.05 215);
@@ -237,3 +238,21 @@
   .root-label { font-size: 19px; letter-spacing: 0.08em; }
   .sub-label { font-size: 8.5px; }
 }
+
+.frag-node { cursor: pointer; outline: none; transition: opacity .5s; }
+.frag-label { fill: var(--fragility); font-size: 10px; letter-spacing: 0.06em; pointer-events: none; paint-order: stroke; stroke: var(--background); stroke-width: 3px; }
+.dash-flow { animation: flow 3s linear infinite; }
+.text-fragility { color: var(--fragility); }
+.legend-diamond { width: 9px; height: 9px; transform: rotate(45deg); border: 1.5px solid var(--fragility); }
+.switch { width: 30px; height: 16px; border-radius: 999px; background: var(--muted); position: relative; transition: background .3s; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 999px; background: var(--muted-foreground); transition: all .3s; }
+.switch[data-on="true"] { background: color-mix(in oklab, var(--sw) 45%, transparent); }
+.switch[data-on="true"]::after { left: 16px; background: var(--sw); }
+.tab { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-foreground); padding: 0.3rem 0.6rem; border-radius: 999px; }
+.tab-on { color: var(--foreground); background: var(--muted); }
+.timeline-item { border-radius: 0.6rem; padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-top: 2px solid var(--h); background: color-mix(in oklab, var(--muted) 35%, transparent); }
+.quest-step { border-radius: 0.6rem; padding: 0.55rem 0.75rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--muted) 35%, transparent); }
+.status-fait { border-color: var(--sheet-reco); }
+.status-encours { border-color: var(--gold); box-shadow: 0 0 18px -8px var(--gold); }
+.status-venir { opacity: 0.75; border-style: dashed; }
+@media (max-width: 767px) { .frag-label { font-size: 16px; } }

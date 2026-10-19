@@ -3,12 +3,16 @@ import { useEffect, useState } from "react";
 import { DOMAINS } from "@/data/domains";
 import { LifeTree } from "@/components/tree/LifeTree";
 import { DomainPanel } from "@/components/tree/DomainPanel";
+import { FragilityPanel } from "@/components/tree/FragilityPanel";
+import { ProfileSidebar } from "@/components/layout/ProfileSidebar";
+import { FollowUpZone } from "@/components/layout/FollowUpZone";
+import { FRAGILITIES } from "@/data/fragilities";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Enfance+ — L'arbre de vie de l'accompagnement" },
-      { name: "description", content: "Explorez les six domaines du développement de l'enfant à travers un arbre de vie interactif, pour les professionnels de l'enfance." },
+      { name: "description", content: "Explorez les sept domaines du développement de l'enfant à travers un arbre de vie interactif, pour les professionnels de l'enfance." },
       { property: "og:title", content: "Enfance+ — L'arbre de vie de l'accompagnement" },
       { property: "og:description", content: "Un outil immersif pour observer, comprendre et accompagner l'enfant." },
       { property: "og:type", content: "website" },
@@ -18,62 +22,94 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+const NAV = ["Vue d'ensemble", "Arbre de développement", "Chronologie", "Parcours", "Ressources"];
+
 function Index() {
   const [focus, setFocus] = useState<string | null>(null);
   const [node, setNode] = useState<string | null>(null);
+  const [frag, setFrag] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<string[]>([]);
+  const [drawer, setDrawer] = useState<null | "profil" | "suivi">(null);
   const domain = DOMAINS.find((d) => d.id === focus);
+  const fragility = FRAGILITIES.find((f) => f.id === frag);
+  const selected = !!(domain || fragility);
 
-  const back = () => { setFocus(null); setNode(null); };
-  const open = (id: string) => { setFocus(id); setNode(null); };
+  const back = () => { setFocus(null); setNode(null); setFrag(null); };
+  const open = (id: string) => { setFrag(null); setFocus(id); setNode(null); setHidden((h) => h.filter((x) => x !== id)); setDrawer(null); };
+  const openFrag = (id: string) => { setFocus(null); setNode(null); setFrag(id); };
+  const toggle = (id: string) => setHidden((h) => (h.includes(id) ? h.filter((x) => x !== id) : [...h, id]));
 
   useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === "Escape" && back();
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") { back(); setDrawer(null); } };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, []);
 
   return (
-    <main className="night-sky relative h-screen w-full overflow-hidden">
-      <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-5 md:px-10">
-        <h1 className="font-display text-3xl tracking-wide text-foreground">
-          Enfance<span className="text-gold">+</span>
-        </h1>
-        <nav className="hidden gap-6 text-xs uppercase tracking-[0.2em] text-muted-foreground md:flex">
-          <button onClick={back} className={!focus ? "text-foreground" : "hover:text-foreground"}>Arbre</button>
-          {DOMAINS.map((d) => (
-            <button key={d.id} onClick={() => open(d.id)}
-              className={focus === d.id ? "text-foreground" : "hover:text-foreground"}>
-              {d.name.split(" ")[0]}
-            </button>
+    <main className="night-sky flex h-screen w-full flex-col overflow-hidden">
+      <header className="z-20 flex h-14 shrink-0 items-center gap-4 border-b border-border/50 px-4 md:px-6">
+        <h1 className="font-display text-3xl tracking-wide text-foreground">Enfance<span className="text-gold">+</span></h1>
+        <nav className="ml-6 hidden gap-5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground lg:flex">
+          {NAV.map((n, i) => (
+            <button key={n} onClick={i === 1 ? back : i === 2 || i === 3 ? () => setDrawer(null) : undefined}
+              className={i === 1 ? "text-foreground" : "cursor-default opacity-60"} title={i === 1 || i === 2 || i === 3 ? undefined : "Bientôt disponible"}>{n}</button>
           ))}
         </nav>
+        <div className="ml-auto flex items-center gap-2 md:hidden">
+          {selected ? (
+            <button onClick={back} aria-label="Revenir à l'arbre complet" className="btn-back">← Arbre complet</button>
+          ) : (
+            <>
+              <button className="btn-ghost" onClick={() => setDrawer(drawer === "profil" ? null : "profil")}>Profil</button>
+              <button className="btn-ghost" onClick={() => setDrawer(drawer === "suivi" ? null : "suivi")}>Suivi</button>
+            </>
+          )}
+        </div>
+        <p className="ml-auto hidden text-[10px] text-muted-foreground/70 md:block">Démonstration · données fictives</p>
       </header>
 
-      <div className={`absolute inset-x-0 bottom-0 transition-all duration-700 md:top-14 ${focus ? "top-14 max-md:bottom-[52%] md:right-[420px]" : "top-28"}`}>
-        <LifeTree focusId={focus} selectedNode={node} onFocus={open} onNode={setNode} onBack={back} />
+      <div className="flex min-h-0 flex-1 gap-3 p-3">
+        <div className="hidden w-60 shrink-0 md:block">
+          <ProfileSidebar hidden={hidden} onToggle={toggle} onOpen={open} />
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className={`relative min-h-0 flex-1 transition-all duration-700 ${selected ? "max-md:flex-[0_0_46%]" : ""}`}>
+            {!selected && (
+              <p className="pointer-events-none absolute inset-x-0 top-1 z-10 text-center text-xs text-muted-foreground">
+                Choisissez une branche ou un losange de fragilité
+              </p>
+            )}
+            {selected && (
+              <button onClick={back} aria-label="Revenir à l'arbre complet" className="btn-back absolute left-2 top-2 z-20 hidden md:block">← Arbre complet</button>
+            )}
+            <LifeTree focusId={focus} selectedNode={node} onFocus={open} onNode={setNode} onBack={back}
+              hidden={hidden} fragilityId={frag} onFragility={openFrag} />
+          </div>
+          <div className="hidden h-44 shrink-0 md:block"><FollowUpZone onDomain={open} /></div>
+          {selected && (
+            <div className="min-h-0 flex-1 md:hidden">
+              {domain && <DomainPanel key={domain.id} domain={domain} selectedNode={node} onNode={setNode} onBack={back} />}
+              {fragility && <FragilityPanel key={fragility.id} f={fragility} onBack={back} onDomain={open} />}
+            </div>
+          )}
+        </div>
+
+        {selected && (
+          <div className="hidden w-[380px] shrink-0 md:block">
+            {domain && <DomainPanel key={domain.id} domain={domain} selectedNode={node} onNode={setNode} onBack={back} />}
+            {fragility && <FragilityPanel key={fragility.id} f={fragility} onBack={back} onDomain={open} />}
+          </div>
+        )}
       </div>
 
-      {!focus && (
-        <div className="pointer-events-none absolute inset-x-0 top-16 z-10 px-4 text-center">
-          <p className="text-sm text-muted-foreground">Choisissez une branche pour explorer un domaine</p>
-          <p className="mt-1 hidden text-xs text-muted-foreground/70 sm:block">Les liens pointillés indiquent des proximités possibles, non des causalités.</p>
+      {drawer && (
+        <div className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm md:hidden" onClick={() => setDrawer(null)}>
+          <div className={drawer === "profil" ? "absolute inset-y-3 left-3 w-[80%] max-w-xs" : "absolute inset-x-3 bottom-3 h-[55%]"} onClick={(e) => e.stopPropagation()}>
+            {drawer === "profil" ? <ProfileSidebar hidden={hidden} onToggle={toggle} onOpen={open} /> : <FollowUpZone onDomain={open} />}
+          </div>
         </div>
       )}
-
-      {domain && (
-        <button onClick={back} aria-label="Revenir à l'arbre complet"
-          className="btn-back absolute right-3 top-4 z-40 md:right-auto md:left-6 md:top-24">← Arbre complet</button>
-      )}
-
-      {domain && (
-        <div className="absolute inset-x-3 bottom-3 top-[49%] z-30 md:inset-x-auto md:bottom-6 md:right-6 md:top-24 md:w-[400px]">
-          <DomainPanel key={domain.id} domain={domain} selectedNode={node} onNode={setNode} onBack={back} />
-        </div>
-      )}
-
-      <p className="absolute bottom-2 left-4 z-10 hidden text-[10px] text-muted-foreground/60 md:block">
-        Version de démonstration · données fictives · aucune donnée enregistrée
-      </p>
     </main>
   );
 }
