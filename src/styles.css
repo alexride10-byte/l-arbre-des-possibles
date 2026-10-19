@@ -240,7 +240,7 @@
 }
 
 .frag-node { cursor: pointer; outline: none; transition: opacity .5s; }
-.frag-label { fill: var(--fragility); font-size: 10px; letter-spacing: 0.06em; pointer-events: none; paint-order: stroke; stroke: var(--background); stroke-width: 3px; }
+.frag-label { fill: var(--fragility); font-size: 12.5px; letter-spacing: 0.06em; pointer-events: none; paint-order: stroke; stroke: var(--background); stroke-width: 3px; }
 .dash-flow { animation: flow 3s linear infinite; }
 .text-fragility { color: var(--fragility); }
 .legend-diamond { width: 9px; height: 9px; transform: rotate(45deg); border: 1.5px solid var(--fragility); }

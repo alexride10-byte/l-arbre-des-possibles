@@ -107,7 +107,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
               {r.label && (
                 <>
                   <circle cx={r.end.x} cy={r.end.y} r="3" fill="var(--gold)" filter="url(#halo)" />
-                  <text x={mobile ? clampX(r.end.x, r.label.length, 19) : r.end.x} y={r.end.y + 20 + (mobile && i % 4 === 2 ? 28 : 0)} textAnchor="middle" className="root-label">{r.label}</text>
+                  <text x={clampX(r.end.x, r.label.length, mobile ? 19 : 11)} y={r.end.y + 20 + (mobile && i % 4 === 2 ? 28 : 0)} textAnchor="middle" className="root-label">{r.label}</text>
                 </>
               )}
             </g>
@@ -145,7 +145,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
                 <circle cx={g.end.x} cy={g.end.y} r="60" fill="transparent" />
                 <circle cx={g.end.x} cy={g.end.y} r={active ? 4 : 6} fill={glow(d.hue, 0.92, 0.12)} filter="url(#halo)" className="core" />
                 {!focusId && (
-                  <text x={mobile ? clampX(g.label.x, d.name.split(" ")[0]!.length, 36) : g.label.x} y={g.label.y} textAnchor="middle" className="branch-label"
+                  <text x={clampX(g.label.x, d.name.split(" ")[0]!.length, mobile ? 36 : 22)} y={g.label.y} textAnchor="middle" className="branch-label"
                     style={{ fill: glow(d.hue, 0.9, 0.11) }}>{d.name.split(" ")[0]}</text>
                 )}
               </g>
