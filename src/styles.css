@@ -132,13 +132,97 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
-@layer base {
-  * {
-    border-color: var(--color-border);
-  }
+:root {
+  --background: oklch(0.16 0.04 250);
+  --foreground: oklch(0.95 0.02 220);
+  --card: oklch(0.2 0.04 245);
+  --card-foreground: oklch(0.95 0.02 220);
+  --popover: oklch(0.2 0.04 245);
+  --popover-foreground: oklch(0.95 0.02 220);
+  --primary: oklch(0.78 0.12 190);
+  --primary-foreground: oklch(0.16 0.04 250);
+  --muted: oklch(0.25 0.04 245);
+  --muted-foreground: oklch(0.72 0.03 225);
+  --border: oklch(0.85 0.05 200 / 18%);
+  --gold: oklch(0.83 0.12 85);
+  --tree-aura: oklch(0.7 0.12 195);
+  --bark-dark: oklch(0.22 0.03 240);
+  --bark-light: oklch(0.42 0.05 215);
+  --sky-top: oklch(0.12 0.04 260);
+  --sky-mid: oklch(0.19 0.06 235);
+  --sheet-fact: oklch(0.78 0.12 200);
+  --sheet-hypo: oklch(0.83 0.12 85);
+  --sheet-reco: oklch(0.8 0.13 155);
+  --font-display: "Cormorant Garamond", serif;
+  --font-sans: "Manrope", sans-serif;
+}
 
+@theme inline {
+  --color-gold: var(--gold);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
   }
 }
+
+.night-sky {
+  background:
+    radial-gradient(ellipse at 50% 40%, var(--sky-mid), transparent 70%),
+    linear-gradient(180deg, var(--sky-top), var(--background));
+}
+.camera { transform-origin: 0 0; transition: transform 1.2s cubic-bezier(0.65, 0, 0.35, 1); }
+.branch { transition: opacity 0.8s ease; }
+.subnodes { transition: opacity 0.8s ease 0.5s; }
+.branch-hit { cursor: pointer; outline: none; }
+.branch-hit:hover .core, .branch-hit:focus-visible .core { transform-box: fill-box; transform-origin: center; transform: scale(1.35); }
+.core { transition: transform 0.4s ease; animation: pulse 4s ease-in-out infinite; }
+.branch-label { fill: var(--foreground); font-family: var(--font-display); font-size: 19px; letter-spacing: 0.04em; pointer-events: none; }
+.root-label { fill: var(--muted-foreground); font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; }
+.sub-label { fill: var(--foreground); font-size: 6px; pointer-events: none; }
+.subnode { cursor: pointer; }
+.link { stroke: var(--gold); stroke-width: 0.8; stroke-dasharray: 2 6; opacity: 0.35; }
+.sap { stroke-dasharray: 6 14; animation: flow 6s linear infinite; }
+.particle { fill: var(--gold); opacity: 0; animation: twinkle ease-in-out infinite; }
+.kind-ressource { fill: var(--sheet-fact); stroke: var(--foreground); }
+.kind-competence { fill: var(--sheet-reco); stroke: var(--foreground); }
+.kind-difficulte { fill: var(--sheet-hypo); stroke: var(--foreground); }
+.kind-besoin { fill: var(--background); stroke: var(--gold); }
+
+.glass-panel {
+  height: 100%;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 72%, transparent);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 30px 80px -20px oklch(0 0 0 / 60%), inset 0 1px 0 oklch(1 0 0 / 6%);
+}
+.panel-enter { animation: slideIn 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.eyebrow { font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted-foreground); }
+.btn-ghost { font-size: 0.75rem; color: var(--muted-foreground); border: 1px solid var(--border); border-radius: 999px; padding: 0.35rem 0.8rem; white-space: nowrap; transition: all .3s; }
+.btn-ghost:hover { color: var(--foreground); border-color: var(--gold); }
+.btn-gold { border-radius: 999px; padding: 0.7rem; font-size: 0.85rem; color: var(--primary-foreground); background: linear-gradient(90deg, var(--gold), var(--primary)); transition: filter .3s; }
+.btn-gold:hover { filter: brightness(1.1); }
+.chip { font-size: 0.75rem; border-radius: 999px; padding: 0.3rem 0.75rem; border: 1px solid var(--border); transition: all .3s; }
+.chip-active { background: var(--muted); border-color: var(--gold); }
+.kind-chip-ressource { box-shadow: inset 3px 0 0 var(--sheet-fact); }
+.kind-chip-competence { box-shadow: inset 3px 0 0 var(--sheet-reco); }
+.kind-chip-difficulte { box-shadow: inset 3px 0 0 var(--sheet-hypo); }
+.kind-chip-besoin { box-shadow: inset 3px 0 0 var(--gold); }
+.sheet-block { border-radius: 0.75rem; padding: 0.85rem 1rem; border: 1px solid var(--border); border-left-width: 3px; background: color-mix(in oklab, var(--muted) 50%, transparent); }
+.sheet-fact { border-left-color: var(--sheet-fact); }
+.sheet-hypo { border-left-color: var(--sheet-hypo); border-style: dashed; border-left-style: solid; }
+.sheet-reco { border-left-color: var(--sheet-reco); }
+.tag { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-foreground); }
+
+@keyframes flow { to { stroke-dashoffset: -200; } }
+@keyframes twinkle { 0%,100% { opacity: 0; } 50% { opacity: 0.7; } }
+@keyframes pulse { 0%,100% { opacity: 0.85; } 50% { opacity: 1; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .camera, .sap, .particle, .core { animation: none; transition: none; } }
