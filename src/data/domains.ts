@@ -169,4 +169,21 @@ export const DOMAINS: Domain[] = [
     pistes: ["Responsabilité hebdomadaire", "Check-list illustrée du cartable"],
     resources: [],
   },
+  {
+    id: "environnement",
+    name: "Environnement",
+    hue: 190,
+    intro: "Cadres de vie de l'enfant : famille, école, lieux sociaux et événements récents.",
+    nodes: [
+      { id: "v1", label: "Cadre familial", kind: "ressource", note: "Deux foyers attentifs, communication régulière avec l'école." },
+      { id: "v2", label: "Cadre scolaire", kind: "ressource", note: "Équipe stable, hormis des remplacements ponctuels." },
+      { id: "v3", label: "Changements récents", kind: "difficulte", note: "Déménagement d'un des foyers cet été." },
+      { id: "v4", label: "Liens école-famille", kind: "besoin", note: "Un temps d'échange régulier pourrait être utile." },
+    ],
+    strengths: ["Familles disponibles pour échanger", "Activité de loisir appréciée le mercredi"],
+    fragilities: ["Période de changements dans l'organisation familiale"],
+    observations: [{ date: "08/09/2026", text: "Parle avec enthousiasme de sa nouvelle chambre." }],
+    pistes: ["Cahier de liaison illustré", "Rencontre trimestrielle avec la famille"],
+    resources: ["Guide de la coéducation (Éduscol)"],
+  },
 ];
