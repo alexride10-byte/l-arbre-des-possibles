@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DOMAINS, ROOTS, type Domain } from "@/data/domains";
 import { branchGeometry, rootGeometry, trunkGeometry, seeded, VIEW } from "@/lib/tree-geometry";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Heart, Users, Brain, BookOpen, Activity, Sprout, House, AlertTriangle, Zap, Focus, Moon, Wind, Handshake } from "lucide-react";
 import { FactorNetwork } from "./FactorNetwork";
+import { AvatarIllustration, type AvatarOptions } from "@/components/layout/AvatarIllustration";
 import { FRAGILITIES } from "@/data/fragilities";
 
 const FRAG_POS = [{ x: 230, y: 624 }, { x: 340, y: 658 }, { x: 450, y: 634 }, { x: 560, y: 658 }, { x: 670, y: 634 }, { x: 780, y: 658 }];
@@ -12,9 +13,10 @@ const FRAG_ICONS = [AlertTriangle, Zap, Focus, Moon, Wind, Handshake];
 
 const glow = (h: number, l = 0.8, c = 0.13) => `oklch(${l} ${c} ${h})`;
 const domainColor = (id: string) => `var(--domain-${id})`;
-const LEAF = "M0,0 Q4,-3.2 9,0 Q4,3.2 0,0 Z";
+const LEAF = "M0,0 Q2,-5 10,-1 Q7,4 0,0 Z M1,0 L8,-1";
 
 interface Props {
+  avatar: AvatarOptions;
   focusId: string | null;
   selectedNode: string | null;
   onFocus: (id: string) => void;
@@ -27,9 +29,18 @@ interface Props {
   selectedFactor?: string | null;
 }
 
-export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidden = [], fragilityId = null, onFragility, onFactor, selectedFactor }: Props) {
+export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBack, hidden = [], fragilityId = null, onFragility, onFactor, selectedFactor }: Props) {
   const mobile = useIsMobile();
-  const vb = { x: 0, y: 0, w: VIEW.w, h: 830 };
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [height, setHeight] = useState(830);
+  useEffect(() => {
+    const el = svgRef.current; if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry && entry.contentRect.width > 0) setHeight(1000 * entry.contentRect.height / entry.contentRect.width);
+    });
+    observer.observe(el); return () => observer.disconnect();
+  }, []);
+  const vb = { x: 0, y: 0, w: VIEW.w, h: height };
   const geo = useMemo(() => branchGeometry(DOMAINS), []);
   const roots = useMemo(() => rootGeometry(ROOTS), []);
   const trunk = useMemo(() => trunkGeometry(), []);
@@ -45,15 +56,18 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
     return Math.min(Math.max(x, vb.x + half), vb.x + vb.w - half);
   };
   const fi = DOMAINS.findIndex((d) => d.id === focusId);
-  const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
+  const cx = 500, cy = height / 2;
   const focusedGeo = geo[fi];
-  const cam = focusedGeo ? { x: focusedGeo.end.x, y: focusedGeo.end.y + 5, s: mobile ? 2.5 : 2.7 } : { x: cx, y: cy, s: 1 };
   const frag = FRAGILITIES.find((f) => f.id === fragilityId);
-  if (frag && fi < 0) { cam.x = cx; cam.y = cy; cam.s = 1; }
-  const transform = `translate(${cx}px, ${cy}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
+  const overviewScale = Math.min(1.08, height / 825);
+  const cam = frag ? { x: 500, y: 395, s: mobile ? Math.min(1.02, height * .47 / 600) : overviewScale } : focusedGeo ? { x: focusedGeo.end.x, y: focusedGeo.end.y - 12, s: mobile ? 2.15 : Math.min(2.15, height / 320) } : { x: 500, y: 415, s: overviewScale };
+  const targetY = mobile && (frag || focusId) ? height * .23 : cy;
+  const transform = `translate(${cx}px, ${targetY}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
 
   return (
     <svg
+      ref={svgRef}
+      data-camera-mode={frag ? "network" : focusId ? "domain" : "overview"}
       viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
       className="h-full w-full"
       preserveAspectRatio="xMidYMid meet"
@@ -68,7 +82,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
           <stop offset="100%" stopColor="var(--tree-aura)" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="heart" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.55" />
+          <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.38" />
           <stop offset="100%" stopColor="var(--gold)" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="bark" x1="0" x2="1">
@@ -91,9 +105,10 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
           <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0" />
           <feComposite in2="SourceGraphic" operator="in" />
         </filter>
+        {DOMAINS.map((d) => <linearGradient key={`leaf-${d.id}`} id={`leaf-${d.id}`} x2="1" y2="1"><stop stopColor="var(--bark-mid)" /><stop offset=".48" stopColor={domainColor(d.id)} /><stop offset="1" stopColor="var(--gold)" stopOpacity=".75" /></linearGradient>)}
         {DOMAINS.map((d) => <linearGradient key={d.id} id={`wood-${d.id}`} x1="0" y1="1" x2="0" y2="0">
           <stop offset="0%" stopColor="var(--bark-mid)" />
-          <stop offset="58%" stopColor={domainColor(d.id)} stopOpacity="0.55" />
+          <stop offset="58%" stopColor={domainColor(d.id)} stopOpacity="0.38" />
           <stop offset="100%" stopColor={domainColor(d.id)} />
         </linearGradient>)}
       </defs>
@@ -104,6 +119,10 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
       ))}
 
       <g className="camera" style={{ transform }}>
+        <g className="forest-depth" pointerEvents="none" opacity=".24">
+          {[70, 170, 860, 960].map((x, i) => <g key={x} transform={`translate(${x},0)`}><path d={`M0 695 Q${i % 2 ? -28 : 28} 420 4 115 M0 430 Q-60 315 -100 285 M5 370 Q70 225 115 190 M0 540 Q-75 410 -140 415`} fill="none" stroke="var(--bark-mid)" strokeWidth="18" /><path d="M0 450 Q-100 315 -155 305 M0 360 Q60 180 130 170" fill="none" stroke="var(--bark-light)" strokeWidth="3" /></g>)}
+        </g>
+        <path d="M80 718 Q165 625 325 675 Q455 580 500 637 Q570 592 700 680 Q830 622 936 721 L970 790 Q780 770 660 755 Q450 797 285 760 L40 790Z" fill="url(#barkV)" opacity=".7" pointerEvents="none" />
         <ellipse cx="500" cy="330" rx="480" ry="330" fill="url(#aura)" pointerEvents="none" />
         {DOMAINS.map((d, i) => (
           <circle key={d.id} cx={geo[i]?.end.x} cy={geo[i]?.end.y} r="85" fill={domainColor(d.id)} opacity="0.18" filter="url(#soft)" pointerEvents="none" />
@@ -137,17 +156,17 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
           
           const dim = (focusId && !active) || !!frag;
           return (
-            <g key={d.id} className="branch" style={{ opacity: off ? 0.08 : dim ? 0.16 : 1, pointerEvents: off ? "none" : undefined }}>
+            <g key={d.id} className="branch" style={{ opacity: off ? 0.08 : dim ? 0.29 : 1, pointerEvents: off ? "none" : undefined }}>
               {g.twigs.map((t, k) => <path key={k} d={t} fill={`url(#wood-${d.id})`} />)}
               <path d={g.body} fill={`url(#wood-${d.id})`} />
               <path d={g.body} fill="var(--bark-light)" filter="url(#grain)" />
               <path d={g.spine} stroke={domainColor(d.id)} strokeWidth="10" fill="none" opacity="0.14" filter="url(#soft)" pointerEvents="none" />
-              <path d={g.spine} stroke={domainColor(d.id)} strokeWidth="2.6" fill="none" className="sap" filter="url(#halo)" opacity="0.8" />
+              <path d={g.spine} stroke={domainColor(d.id)} strokeWidth="1.4" fill="none" className="sap" filter="url(#halo)" opacity="0.8" />
               <g className="foliage">
                 {g.leaves.map((l, k) => (
                   <path key={k} d={LEAF}
                     transform={`translate(${l.x.toFixed(1)},${l.y.toFixed(1)}) rotate(${l.rot.toFixed(0)}) scale(${(l.r / 4.5).toFixed(2)})`}
-                    fill={l.tone < 0.86 ? domainColor(d.id) : "var(--gold)"}
+                    fill={`url(#leaf-${d.id})`}
                     opacity={0.45 + l.tone * 0.4} />
                 ))}
               </g>
@@ -182,7 +201,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
                     <g key={n.id} style={{ transition: "opacity .5s, transform .6s", transitionDelay: active ? `${250 + k * 140}ms` : "0ms", opacity: active ? 1 : 0, transform: active ? "none" : `translate(${(g.end.x - p.x) * 0.6}px, ${(g.end.y - p.y) * 0.6}px)` }} role="button" tabIndex={active ? 0 : -1} aria-label={n.label} className="subnode"
                       onClick={(e) => { e.stopPropagation(); onNode(n.id); }}
                       onKeyDown={(e) => { if (e.key === "Enter") onNode(n.id); }}>
-                      <path d={g.reveal[k]} stroke="url(#bark)" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+                      <path d={g.reveal[k]} stroke={`url(#wood-${d.id})`} strokeWidth="2.4" fill="none" strokeLinecap="round" />
                       <path d={g.reveal[k]} stroke={glow(d.hue, 0.85, 0.15)} strokeWidth="0.5" fill="none" className="sap" />
                       <circle cx={p.x} cy={p.y} r="14" fill="transparent" />
                       <circle cx={p.x} cy={p.y} r={sel ? 5.5 : 4} className={`kind-${n.kind}`} strokeWidth={sel ? 1.2 : 0.6} filter="url(#halo)" />
@@ -208,15 +227,20 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
         <path d={trunk.spine} stroke="var(--gold)" strokeWidth="1.4" fill="none" className="sap" filter="url(#halo)" />
         <ellipse cx="500" cy="470" rx="100" ry="150" fill="url(#heart)" className="core" pointerEvents="none" />
 
+        <svg x="444" y="455" width="112" height="146" pointerEvents="none" opacity={focusId || frag ? .3 : 1}><AvatarIllustration options={avatar} /></svg>
+        {focusId === "emotionnel" && !frag && <g className="subnode anxiety-discovery" role="button" tabIndex={0} aria-label="Fragilité : Anxiété" onClick={(e) => { e.stopPropagation(); onFragility?.("f-anxiete"); }} onKeyDown={(e) => { if (e.key === "Enter") onFragility?.("f-anxiete"); }}>
+          <path d={`M${focusedGeo?.end.x ?? 500},${focusedGeo?.end.y ?? 185} Q570,275 575,325`} stroke="var(--fragility)" strokeWidth="1" fill="none" className="sap" pointerEvents="none" />
+          <rect x="535" y="310" width="95" height="29" rx="8" fill="var(--background)" stroke="var(--fragility)" /><AlertTriangle x="542" y="317" width="15" height="15" color="var(--fragility)" pointerEvents="none" /><text x="564" y="329" className="discovery-label" pointerEvents="none">Anxiété</text>
+        </g>}
         {/* Défis et fragilités : nœuds distincts (losanges), liens = relations possibles */}
         {frag && onFactor && <FactorNetwork fragilityId={frag.id} selectedFactor={selectedFactor ?? null} onFactor={onFactor} />}
         {!focusId && !frag && <text x="500" y="590" textAnchor="middle" className="challenge-title">DÉFIS ET FRAGILITÉS ÉVOLUTIVES</text>}
-        <g style={{ opacity: focusId ? 0.25 : 1, transition: "opacity .6s" }}>
+        <g style={{ pointerEvents: focusId ? "none" : "auto", opacity: focusId ? 0.25 : 1, transition: "opacity .6s" }}>
           {FRAGILITIES.map((f, i) => {
             const p = FRAG_POS[i]; if (!p) return null; const FragIcon = FRAG_ICONS[i] ?? AlertTriangle; const sel = f.id === fragilityId;
             const short = f.label.replace("Difficultés de concentration", "Concentration").replace("Régulation émotionnelle", "Régulation");
             return (
-              <g key={f.id} role="button" tabIndex={0} aria-label={`Fragilité : ${f.label}`} className="frag-node"
+              <g key={f.id} role="button" tabIndex={focusId ? -1 : 0} aria-label={`Fragilité : ${f.label}`} className="frag-node"
                 style={{ opacity: frag && !sel ? 0.45 : 1 }}
                 onClick={(e) => { e.stopPropagation(); onFragility?.(f.id); }}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onFragility?.(f.id); } }}>

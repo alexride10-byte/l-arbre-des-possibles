@@ -1,18 +1,22 @@
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
+import { AvatarIllustration, type AvatarOptions } from "./AvatarIllustration";
 import { DOMAINS } from "@/data/domains";
 
 export const CHILD = { name: "Léo", age: "8 ans", level: "CE2", note: "Profil fictif de démonstration" };
 
-export function ProfileSidebar({ hidden, onToggle, onOpen }: {
-  hidden: string[]; onToggle: (id: string) => void; onOpen: (id: string) => void;
+export function ProfileSidebar({ hidden, onToggle, onOpen, avatar, onAvatar }: {
+  avatar: AvatarOptions; onAvatar: () => void; hidden: string[]; onToggle: (id: string) => void; onOpen: (id: string) => void;
 }) {
   return (
     <aside className="glass-panel flex h-full flex-col gap-5 overflow-y-auto p-5">
-      <div className="flex items-center gap-3">
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-gold/60 font-display text-2xl text-gold">L</div>
+      <div className="profile-portrait"><AvatarIllustration options={avatar} className="h-full w-full" /></div>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <div className="min-w-0">
           <p className="font-display text-2xl leading-none">{CHILD.name}</p>
           <p className="text-xs text-muted-foreground">{CHILD.age} · {CHILD.level}</p>
         </div>
+        <Button variant="outline" size="icon" onClick={onAvatar} aria-label="Personnaliser l’avatar" title="Personnaliser l’avatar"><Pencil /></Button>
       </div>
       <p className="tag">{CHILD.note}</p>
 

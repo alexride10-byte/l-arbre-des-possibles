@@ -102,9 +102,9 @@ export function branchGeometry(domains: Domain[]): BranchGeo[] {
   return domains.map((d, i) => {
     const r = seeded(11 + i * 37);
     const crowns: Record<string, P> = {
-      emotionnel: { x: 500, y: 185 }, social: { x: 735, y: 225 },
+      emotionnel: { x: 515, y: 195 }, social: { x: 750, y: 185 },
       cognitif: { x: 265, y: 300 }, scolaire: { x: 755, y: 365 },
-      sante: { x: 285, y: 465 }, autonomie: { x: 305, y: 165 },
+      sante: { x: 285, y: 465 }, autonomie: { x: 300, y: 135 },
       environnement: { x: 740, y: 505 },
     };
     const end = crowns[d.id] ?? { x: 500, y: 200 };
@@ -112,8 +112,8 @@ export function branchGeometry(domains: Domain[]): BranchGeo[] {
     const p0 = { x: 500 + side * 14, y: 510 + (end.y > 400 ? 55 : 0) };
     const main: Bez = {
       p0,
-      c1: { x: p0.x + (end.x - p0.x) * 0.15, y: p0.y - 115 },
-      c2: { x: p0.x + (end.x - p0.x) * 0.6, y: end.y + 75 },
+      c1: { x: p0.x - side * 35, y: p0.y - 100 },
+      c2: { x: end.x - side * 80, y: end.y + 65 },
       p3: end,
     };
     const tipAng = Math.atan2(end.y - main.c2.y, end.x - main.c2.x);
@@ -143,7 +143,7 @@ export function branchGeometry(domains: Domain[]): BranchGeo[] {
 
     return {
       end,
-      body: taper(main, 36, 5),
+      body: taper(main, 44, 7),
       spine: bezD(main),
       twigs,
       leaves,
@@ -181,8 +181,8 @@ export function rootGeometry(labels: string[]): RootGeo[] {
 export function trunkGeometry() {
   const b: Bez = { p0: { x: 500, y: GROUND_Y + 6 }, c1: { x: 478, y: 580 }, c2: { x: 520, y: 500 }, p3: { x: 500, y: 365 } };
   const body = taper(b, 170, 42, 40);
-  const veins = Array.from({ length: 9 }, (_, i) => {
-    const o = (i - 4) / 4;
+  const veins = Array.from({ length: 19 }, (_, i) => {
+    const o = (i - 9) / 9;
     return `M${f(500 + o * 62)},${f(GROUND_Y)} C${f(478 + o * 45)},580 ${f(520 + o * 32)},505 ${f(500 + o * 26)},${TRUNK_TOP.y + 5}`;
   });
   return { body, veins, spine: bezD(b) };
