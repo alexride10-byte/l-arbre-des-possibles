@@ -230,3 +230,10 @@
 
 .field { width: 100%; border-radius: 0.5rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--background) 60%, transparent); padding: 0.45rem 0.65rem; font-size: 0.85rem; color: var(--foreground); outline: none; color-scheme: dark; }
 .field:focus { border-color: var(--gold); }
+.btn-back { font-size: 0.8rem; color: var(--foreground); border: 1px solid var(--gold); border-radius: 999px; padding: 0.5rem 1rem; background: color-mix(in oklab, var(--card) 80%, transparent); backdrop-filter: blur(12px); box-shadow: 0 0 24px -6px var(--gold); transition: filter .3s; }
+.btn-back:hover { filter: brightness(1.15); }
+@media (max-width: 767px) {
+  .branch-label { font-size: 36px; stroke-width: 7px; }
+  .root-label { font-size: 19px; letter-spacing: 0.08em; }
+  .sub-label { font-size: 7px; }
+}
