@@ -28,7 +28,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
   }, []);
 
   const clampX = (x: number, chars: number, px: number) => {
-    const half = (chars * px * 0.55) / 2 + 8;
+    const half = (chars * px * 0.7) / 2 + 8;
     return Math.min(Math.max(x, vb.x + half), vb.x + vb.w - half);
   };
   const fi = DOMAINS.findIndex((d) => d.id === focusId);

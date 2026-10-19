@@ -62,7 +62,7 @@ function Index() {
 
       {domain && (
         <button onClick={back} aria-label="Revenir à l'arbre complet"
-          className="btn-back absolute left-3 top-16 z-40 md:left-6 md:top-24">← Arbre complet</button>
+          className="btn-back absolute right-3 top-4 z-40 md:right-auto md:left-6 md:top-24">← Arbre complet</button>
       )}
 
       {domain && (
