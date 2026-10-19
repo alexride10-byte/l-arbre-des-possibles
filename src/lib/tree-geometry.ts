@@ -131,8 +131,8 @@ export function branchGeometry(domains: Domain[]): BranchGeo[] {
 
     // Nœuds répartis dans le feuillage, côté extérieur
     const nodes = d.nodes.map((_, k) => {
-      const ang = tipAng + (k / Math.max(1, d.nodes.length - 1) - 0.5) * 2.4;
-      return { x: end.x + Math.cos(ang) * 58, y: end.y + Math.sin(ang) * 50 };
+      const ang = tipAng + (k / Math.max(1, d.nodes.length - 1) - 0.5) * 2.8;
+      return { x: end.x + Math.cos(ang) * 72, y: end.y + Math.sin(ang) * 62 };
     });
     const reveal = nodes.map((p) => {
       const mx = (end.x + p.x) / 2 + (p.y - end.y) * 0.25, my = (end.y + p.y) / 2 - (p.x - end.x) * 0.25;
@@ -157,10 +157,10 @@ export interface RootGeo { body: string; spine: string; end: P; label?: string |
 export function rootGeometry(labels: string[]): RootGeo[] {
   const r = seeded(99);
   const out: RootGeo[] = [];
-  const total = labels.length + 4;
+  const total = labels.length * 2 - 1;
   for (let i = 0; i < total; i++) {
     const t = i / (total - 1);
-    const labelIdx = i >= 2 && i < 2 + labels.length ? i - 2 : -1;
+    const labelIdx = i % 2 === 0 && i / 2 < labels.length ? i / 2 : -1;
     const ex = 120 + t * 760 + (r() - 0.5) * 20;
     const ey = labelIdx >= 0 ? 735 + Math.sin(t * Math.PI) * 25 : 690 + r() * 40;
     const p0 = { x: 450 + t * 100, y: GROUND_Y - 6 };
