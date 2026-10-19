@@ -52,7 +52,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "emotionnel",
     name: "Émotionnel",
-    hue: 200,
+    hue: 75,
     intro:
       "Reconnaissance, expression et régulation des émotions, dans un contexte donné et à un moment donné.",
     nodes: [
@@ -87,7 +87,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "social",
     name: "Social et relationnel",
-    hue: 175,
+    hue: 300,
     intro: "Qualité des liens avec les pairs et les adultes, coopération, place dans le groupe.",
     nodes: [
       { id: "s1", label: "Coopération", kind: "competence", note: "Partage le matériel en atelier dirigé." },
@@ -104,7 +104,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "cognitif",
     name: "Cognitif",
-    hue: 85,
+    hue: 250,
     intro: "Attention, mémoire, raisonnement, langage et fonctions exécutives.",
     nodes: [
       { id: "c1", label: "Curiosité", kind: "competence", note: "Pose de nombreuses questions sur la nature." },
@@ -138,7 +138,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "sante",
     name: "Santé et bien-être",
-    hue: 150,
+    hue: 22,
     intro: "Sommeil, alimentation, motricité, sensorialité et confort global.",
     nodes: [
       { id: "h1", label: "Motricité globale", kind: "competence", note: "Aime courir, grimper, s'équilibrer." },
