@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import { DOMAINS, ROOTS, type Domain } from "@/data/domains";
-import { branchGeometry, seeded, GROUND_Y, TRUNK_TOP, VIEW } from "@/lib/tree-geometry";
+import { branchGeometry, rootGeometry, trunkGeometry, seeded, VIEW } from "@/lib/tree-geometry";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const glow = (h: number, l = 0.8, c = 0.13) => `oklch(${l} ${c} ${h})`;
+const LEAF = "M0,0 Q4,-3.2 9,0 Q4,3.2 0,0 Z";
 
 interface Props {
   focusId: string | null;
@@ -13,28 +15,27 @@ interface Props {
 }
 
 export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Props) {
+  const mobile = useIsMobile();
+  const vb = mobile ? { x: 160, y: 40, w: 680, h: 780 } : { x: 0, y: -40, w: VIEW.w, h: VIEW.h + 40 };
   const geo = useMemo(() => branchGeometry(DOMAINS), []);
+  const roots = useMemo(() => rootGeometry(ROOTS), []);
+  const trunk = useMemo(() => trunkGeometry(), []);
   const particles = useMemo(() => {
     const r = seeded(7);
-    return Array.from({ length: 60 }, () => ({
-      x: r() * VIEW.w, y: r() * VIEW.h, s: 0.6 + r() * 1.8, d: 4 + r() * 8, delay: r() * 6,
+    return Array.from({ length: 80 }, () => ({
+      x: r() * VIEW.w, y: r() * VIEW.h * 0.85, s: 0.5 + r() * 1.6, d: 4 + r() * 8, delay: r() * 6,
     }));
   }, []);
 
   const fi = DOMAINS.findIndex((d) => d.id === focusId);
-  const cam = fi >= 0 ? { x: geo[fi]!.end.x + 40, y: geo[fi]!.end.y + 10, s: 2.6 } : { x: 500, y: 410, s: 1 };
-  const transform = `translate(${VIEW.w / 2}px, ${VIEW.h / 2}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
-
-  const roots = ROOTS.map((label, i) => {
-    const t = i / (ROOTS.length - 1);
-    const ex = 180 + t * 640;
-    const ey = 745 + Math.sin(t * Math.PI) * 25;
-    return { label, ex, ey, d: `M${470 + t * 60},${GROUND_Y} C${490 + t * 20},${GROUND_Y + 60} ${ex + (500 - ex) * 0.3},${ey - 40} ${ex},${ey}` };
-  });
+  const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
+  const cam = fi >= 0 ? { x: geo[fi]!.end.x, y: geo[fi]!.end.y + 10, s: mobile ? 2.4 : 2.7 } : { x: cx, y: cy, s: 1 };
+  const ty = mobile && fi >= 0 ? vb.y + vb.h * 0.28 : cy;
+  const transform = `translate(${cx}px, ${ty}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
 
   return (
     <svg
-      viewBox={`0 0 ${VIEW.w} ${VIEW.h}`}
+      viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
       className="h-full w-full"
       preserveAspectRatio="xMidYMid meet"
       role="img"
@@ -43,20 +44,33 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
     >
       <defs>
         <radialGradient id="aura" cx="50%" cy="45%" r="50%">
-          <stop offset="0%" stopColor="var(--tree-aura)" stopOpacity="0.45" />
+          <stop offset="0%" stopColor="var(--tree-aura)" stopOpacity="0.4" />
+          <stop offset="60%" stopColor="var(--tree-aura)" stopOpacity="0.08" />
           <stop offset="100%" stopColor="var(--tree-aura)" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="heart" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="var(--gold)" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="bark" x1="0" x2="1">
           <stop offset="0%" stopColor="var(--bark-dark)" />
-          <stop offset="50%" stopColor="var(--bark-light)" />
+          <stop offset="45%" stopColor="var(--bark-light)" />
+          <stop offset="70%" stopColor="var(--bark-mid)" />
           <stop offset="100%" stopColor="var(--bark-dark)" />
         </linearGradient>
-        <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="6" />
-        </filter>
+        <linearGradient id="barkV" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stopColor="var(--bark-dark)" />
+          <stop offset="100%" stopColor="var(--bark-light)" />
+        </linearGradient>
+        <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8" /></filter>
         <filter id="halo" x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="3" result="b" />
+          <feGaussianBlur stdDeviation="2.5" result="b" />
           <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <filter id="grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9 0.08" numOctaves="2" seed="3" />
+          <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0" />
+          <feComposite in2="SourceGraphic" operator="in" />
         </filter>
       </defs>
 
@@ -66,36 +80,27 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
       ))}
 
       <g className="camera" style={{ transform }}>
-        <ellipse cx="500" cy="380" rx="460" ry="360" fill="url(#aura)" />
-        <ellipse cx="500" cy={GROUND_Y} rx="360" ry="16" fill="var(--tree-aura)" opacity="0.15" filter="url(#soft)" />
+        <ellipse cx="500" cy="330" rx="480" ry="330" fill="url(#aura)" pointerEvents="none" />
+        {DOMAINS.map((d, i) => (
+          <circle key={d.id} cx={geo[i]!.end.x} cy={geo[i]!.end.y} r="85" fill={glow(d.hue, 0.6, 0.12)} opacity="0.22" filter="url(#soft)" pointerEvents="none" />
+        ))}
+        <ellipse cx="500" cy="645" rx="380" ry="20" fill="var(--tree-aura)" opacity="0.18" filter="url(#soft)" />
 
         {/* Racines : contextes */}
         <g className="roots">
-          {roots.map((r) => (
-            <g key={r.label}>
-              <path d={r.d} stroke="url(#bark)" strokeWidth="9" fill="none" strokeLinecap="round" opacity="0.85" />
-              <path d={r.d} stroke="var(--gold)" strokeWidth="1" fill="none" opacity="0.5" className="sap" />
-              <circle cx={r.ex} cy={r.ey} r="4" fill="var(--gold)" filter="url(#halo)" />
-              <text x={r.ex} y={r.ey + 22} textAnchor="middle" className="root-label">{r.label}</text>
+          {roots.map((r, i) => (
+            <g key={i}>
+              <path d={r.body} fill="url(#barkV)" opacity={r.label ? 0.95 : 0.6} />
+              <path d={r.spine} stroke="var(--tree-aura)" strokeWidth="0.8" fill="none" opacity="0.5" className="sap" />
+              {r.label && (
+                <>
+                  <circle cx={r.end.x} cy={r.end.y} r="3" fill="var(--gold)" filter="url(#halo)" />
+                  <text x={r.end.x} y={r.end.y + 20} textAnchor="middle" className="root-label">{r.label}</text>
+                </>
+              )}
             </g>
           ))}
         </g>
-
-        {/* Tronc */}
-        <path
-          d={`M440,${GROUND_Y} C460,560 470,500 ${TRUNK_TOP.x - 30},${TRUNK_TOP.y} L${TRUNK_TOP.x + 30},${TRUNK_TOP.y} C530,500 540,560 560,${GROUND_Y} Z`}
-          fill="url(#bark)"
-        />
-        <path d={`M500,${GROUND_Y} C495,560 505,500 500,${TRUNK_TOP.y}`} stroke="var(--gold)" strokeWidth="1.5" fill="none" className="sap" />
-
-        {/* Liens possibles, non causaux */}
-        {geo.map((g, i) => {
-          const n = geo[i + 1];
-          if (!n) return null;
-          const mx = (g.end.x + n.end.x) / 2, my = Math.min(g.end.y, n.end.y) - 40;
-          return <path key={i} d={`M${g.end.x},${g.end.y} Q${mx},${my} ${n.end.x},${n.end.y}`}
-            className="link" fill="none" />;
-        })}
 
         {/* Branches */}
         {DOMAINS.map((d: Domain, i) => {
@@ -103,40 +108,51 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
           const active = focusId === d.id;
           const dim = focusId && !active;
           return (
-            <g key={d.id} className="branch" style={{ opacity: dim ? 0.25 : 1 }}>
-              <path d={g.path} stroke="url(#bark)" strokeWidth="13" fill="none" strokeLinecap="round" />
-              <path d={g.path} stroke={glow(d.hue, 0.72, 0.22)} strokeWidth="7" fill="none" opacity="0.35" filter="url(#soft)" />
-              <path d={g.path} stroke={glow(d.hue, 0.85, 0.2)} strokeWidth="2.2" fill="none" className="sap" filter="url(#halo)" />
+            <g key={d.id} className="branch" style={{ opacity: dim ? 0.3 : 1 }}>
+              {g.twigs.map((t, k) => <path key={k} d={t} fill="url(#bark)" />)}
+              <path d={g.body} fill="url(#bark)" />
+              <path d={g.body} fill="var(--bark-light)" filter="url(#grain)" />
+              <path d={g.spine} stroke={glow(d.hue, 0.82, 0.15)} strokeWidth="1.4" fill="none" className="sap" filter="url(#halo)" opacity="0.8" />
+              <g className="foliage">
+                {g.leaves.map((l, k) => (
+                  <path key={k} d={LEAF}
+                    transform={`translate(${l.x.toFixed(1)},${l.y.toFixed(1)}) rotate(${l.rot.toFixed(0)}) scale(${(l.r / 4.5).toFixed(2)})`}
+                    fill={l.tone < 0.55 ? glow(d.hue, 0.78, 0.14) : l.tone < 0.8 ? "var(--tree-aura)" : "var(--gold)"}
+                    opacity={0.45 + l.tone * 0.4} />
+                ))}
+              </g>
               <g
                 role="button" tabIndex={0} aria-label={`Explorer le domaine ${d.name}`}
                 className="branch-hit"
                 onClick={(e) => { e.stopPropagation(); onFocus(d.id); }}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onFocus(d.id); }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onFocus(d.id); } }}
               >
-                <path d={g.path} stroke="transparent" strokeWidth="34" fill="none" />
-                <circle cx={g.end.x} cy={g.end.y} r="46" fill={glow(d.hue, 0.7, 0.22)} opacity="0.4" filter="url(#soft)" />
-                <circle cx={g.end.x} cy={g.end.y} r="24" fill="var(--background)" stroke={glow(d.hue, 0.85, 0.2)} strokeWidth="2.5" filter="url(#halo)" />
-                <circle cx={g.end.x} cy={g.end.y} r="29" fill="none" stroke={glow(d.hue, 0.8, 0.18)} strokeWidth="0.8" opacity="0.6" />
-                <circle cx={g.end.x} cy={g.end.y} r={active ? 7 : 10} fill={glow(d.hue, 0.9, 0.2)} filter="url(#halo)" className="core" />
+                <path d={g.spine} stroke="transparent" strokeWidth="40" fill="none" />
+                <circle cx={g.end.x} cy={g.end.y} r="60" fill="transparent" />
+                <circle cx={g.end.x} cy={g.end.y} r={active ? 4 : 6} fill={glow(d.hue, 0.92, 0.12)} filter="url(#halo)" className="core" />
                 {!focusId && (
-                  <text x={g.end.x} y={g.end.y - 40} textAnchor="middle" className="branch-label"
-                    style={{ fill: glow(d.hue, 0.88, 0.18) }}>{d.name.split(" ")[0]!.toUpperCase()}</text>
+                  <text x={g.label.x} y={g.label.y} textAnchor="middle" className="branch-label"
+                    style={{ fill: glow(d.hue, 0.9, 0.11) }}>{d.name.split(" ")[0]}</text>
                 )}
               </g>
-              {/* Sous-nœuds */}
+              {/* Sous-branches révélées au zoom */}
               <g style={{ opacity: active ? 1 : 0, pointerEvents: active ? "auto" : "none" }} className="subnodes">
                 {d.nodes.map((n, k) => {
                   const p = g.nodes[k]!;
                   const sel = selectedNode === n.id;
+                  const above = p.y < g.end.y;
+                  const w = n.label.length * 3.3 + 10;
                   return (
                     <g key={n.id} role="button" tabIndex={active ? 0 : -1} aria-label={n.label} className="subnode"
                       onClick={(e) => { e.stopPropagation(); onNode(n.id); }}
                       onKeyDown={(e) => { if (e.key === "Enter") onNode(n.id); }}>
-                      <line x1={g.end.x} y1={g.end.y} x2={p.x} y2={p.y} stroke={glow(d.hue, 0.85, 0.2)} strokeWidth="0.8" opacity="0.8" />
-                      <rect x={p.x - n.label.length * 1.7 - 4} y={p.y + (p.y < g.end.y ? -17 : 8)} width={n.label.length * 3.4 + 8} height="10" rx="5"
-                        fill="var(--background)" fillOpacity="0.85" stroke={glow(d.hue, 0.8, 0.18)} strokeWidth={sel ? 0.9 : 0.4} />
-                      <circle cx={p.x} cy={p.y} r={sel ? 7 : 5} className={`kind-${n.kind}`} strokeWidth={sel ? 1.5 : 0.8} filter="url(#halo)" />
-                      <text x={p.x} y={p.y + (p.y < g.end.y ? -10 : 15)} textAnchor="middle" className="sub-label">{n.label}</text>
+                      <path d={g.reveal[k]} stroke="url(#bark)" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+                      <path d={g.reveal[k]} stroke={glow(d.hue, 0.85, 0.15)} strokeWidth="0.5" fill="none" className="sap" />
+                      <circle cx={p.x} cy={p.y} r="14" fill="transparent" />
+                      <circle cx={p.x} cy={p.y} r={sel ? 5.5 : 4} className={`kind-${n.kind}`} strokeWidth={sel ? 1.2 : 0.6} filter="url(#halo)" />
+                      <rect x={p.x - w / 2} y={p.y + (above ? -18 : 8)} width={w} height="10" rx="5"
+                        fill="var(--background)" fillOpacity="0.8" stroke={glow(d.hue, 0.8, 0.13)} strokeWidth={sel ? 0.8 : 0.35} />
+                      <text x={p.x} y={p.y + (above ? -11 : 15)} textAnchor="middle" className="sub-label">{n.label}</text>
                     </g>
                   );
                 })}
@@ -144,6 +160,16 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack }: Pro
             </g>
           );
         })}
+
+        {/* Tronc (au premier plan, couvre la base des branches) */}
+        <path d={trunk.body} fill="url(#bark)" />
+        <path d={trunk.body} fill="var(--bark-light)" filter="url(#grain)" />
+        {trunk.veins.map((v, i) => (
+          <path key={i} d={v} stroke={i % 3 === 1 ? "var(--tree-aura)" : "var(--bark-dark)"} strokeWidth={i % 3 === 1 ? 0.9 : 1.6}
+            fill="none" opacity={i % 3 === 1 ? 0.45 : 0.7} className={i % 3 === 1 ? "sap" : undefined} />
+        ))}
+        <path d={trunk.spine} stroke="var(--gold)" strokeWidth="1.4" fill="none" className="sap" filter="url(#halo)" />
+        <ellipse cx="500" cy="470" rx="70" ry="50" fill="url(#heart)" className="core" />
       </g>
     </svg>
   );
