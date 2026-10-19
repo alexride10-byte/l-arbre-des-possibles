@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { KIND_LABEL, type Domain } from "@/data/domains";
+import { Button } from "@/components/ui/button";
+import { FRAGILITIES } from "@/data/fragilities";
 import { ExampleSheetView } from "./ExampleSheet";
 import { ObservationsEditor } from "./ObservationsEditor";
 
@@ -18,8 +20,8 @@ const List = ({ items }: { items: string[] }) => (
   </ul>
 );
 
-export function DomainPanel({ domain, selectedNode, onNode, onBack }: {
-  domain: Domain; selectedNode: string | null; onNode: (id: string) => void; onBack: () => void;
+export function DomainPanel({ domain, selectedNode, onNode, onBack, onFragility }: {
+  domain: Domain; selectedNode: string | null; onNode: (id: string) => void; onBack: () => void; onFragility: (id: string) => void;
 }) {
   const [sheet, setSheet] = useState(false);
   const color = `oklch(0.85 0.13 ${domain.hue})`;
@@ -27,15 +29,15 @@ export function DomainPanel({ domain, selectedNode, onNode, onBack }: {
 
   return (
     <aside className="glass-panel panel-enter flex max-h-full flex-col overflow-hidden">
-      <header className="flex items-start justify-between gap-4 border-b border-border/60 p-6">
-        <div>
+      <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-b border-border/60 p-4">
+        <div className="min-w-0">
           <p className="eyebrow">Domaine</p>
-          <h2 className="font-display text-3xl" style={{ color }}>{domain.name}</h2>
+          <h2 className="font-display text-2xl" style={{ color }}>{domain.name}</h2>
         </div>
         <button onClick={onBack} className="btn-ghost">← Vue générale</button>
       </header>
 
-      <div className="flex-1 space-y-6 overflow-y-auto p-6">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-4">
         {sheet && domain.sheet ? (
           <ExampleSheetView sheet={domain.sheet} onClose={() => setSheet(false)} />
         ) : (
@@ -63,6 +65,10 @@ export function DomainPanel({ domain, selectedNode, onNode, onBack }: {
               <Section title="Forces"><List items={domain.strengths} /></Section>
               <Section title="Fragilités (contextuelles)"><List items={domain.fragilities} /></Section>
             </div>
+
+            <Section title="Défis à explorer">
+              <div className="flex flex-wrap gap-2">{FRAGILITIES.filter((f) => f.domains.includes(domain.id)).map((f) => <Button variant="outline" size="sm" key={f.id} onClick={() => onFragility(f.id)}>{f.label}</Button>)}</div>
+            </Section>
 
             <Section title="Observations fictives">
               <ul className="space-y-2">

@@ -16,3 +16,5 @@
 - Page layout pieces (profile sidebar, follow-up zone) live in `src/components/layout/`; fragility and quest sample data in `src/data/fragilities.ts` / `src/data/quests.ts` — keeps tree visuals independent of the dashboard shell.
 - Tree decorative paths (bark, foliage) must stay `pointer-events: none`; only hit groups, labels and nodes receive clicks — otherwise neighbouring leaves swallow clicks.
 - Shared contextual factors live in `src/data/factors.ts`; `FactorNetwork` and `FactorPanel` consume the same associations while the page retains fragility selection — returning from a factor preserves the exploration network.
+- Keep the scene viewport stable during selection: a reserved desktop details column and overlay mobile sheet leave camera dimensions unchanged; ResizeObserver adapts SVG framing to the available aspect ratio.
+- Fictional avatars are parametric SVG components with page-owned options shared by the profile and tree; customization is session-only and never processes photographs.

@@ -9,6 +9,9 @@ import { FollowUpZone } from "@/components/layout/FollowUpZone";
 import { FactorPanel } from "@/components/tree/FactorPanel";
 import { FACTORS } from "@/data/factors";
 import { Button } from "@/components/ui/button";
+import { AvatarCustomizer } from "@/components/layout/AvatarCustomizer";
+import { DEFAULT_AVATAR, type AvatarOptions } from "@/components/layout/AvatarIllustration";
+import { ArrowLeft, Compass, Heart, ShieldCheck, User, Clock } from "lucide-react";
 import { FRAGILITIES } from "@/data/fragilities";
 
 export const Route = createFileRoute("/")({
@@ -25,9 +28,10 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const NAV = ["Vue d'ensemble", "Arbre de développement", "Chronologie", "Parcours", "Ressources"];
 
 function Index() {
+  const [avatar, setAvatar] = useState<AvatarOptions>(DEFAULT_AVATAR);
+  const [avatarEditor, setAvatarEditor] = useState(false);
   const [focus, setFocus] = useState<string | null>(null);
   const [node, setNode] = useState<string | null>(null);
   const [frag, setFrag] = useState<string | null>(null);
@@ -45,76 +49,53 @@ function Index() {
   const toggle = (id: string) => setHidden((h) => (h.includes(id) ? h.filter((x) => x !== id) : [...h, id]));
 
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === "Escape") { back(); setDrawer(null); } };
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") { if (avatarEditor) setAvatarEditor(false); else { back(); setDrawer(null); } } };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
-  }, []);
+  }, [avatarEditor]);
 
+  const details = domain ? <DomainPanel key={domain.id} domain={domain} selectedNode={node} onNode={setNode} onBack={back} onFragility={openFrag} /> : factor ? <FactorPanel factor={factor} onNetwork={() => setFactorId(null)} onBack={back} /> : fragility ? <FragilityPanel key={fragility.id} f={fragility} onBack={back} onDomain={open} onFactor={setFactorId} /> : null;
+  const profile = <ProfileSidebar hidden={hidden} onToggle={toggle} onOpen={open} avatar={avatar} onAvatar={() => setAvatarEditor(true)} />;
   return (
-    <main className="night-sky flex h-screen w-full flex-col overflow-hidden">
-      <header className="z-20 flex h-14 shrink-0 items-center gap-4 border-b border-border/50 px-4 md:px-6">
-        <h1 className="font-display text-3xl tracking-wide text-foreground">Enfance<span className="text-gold">+</span></h1>
-        <nav className="ml-6 hidden gap-5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground lg:flex">
-          {NAV.map((n, i) => (
-            <button key={n} onClick={i === 1 ? back : i === 2 || i === 3 ? () => setDrawer(null) : undefined}
-              className={i === 1 ? "text-foreground" : "cursor-default opacity-60"} title={i === 1 || i === 2 || i === 3 ? undefined : "Bientôt disponible"}>{n}</button>
-          ))}
+    <main className="night-sky app-shell flex h-dvh w-full flex-col overflow-hidden">
+      <header className="app-header z-20 grid h-16 shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/50 px-4 lg:flex lg:px-6">
+        <h1 className="min-w-0 font-display text-3xl text-foreground">Enfance<span className="text-gold">+</span></h1>
+        <nav aria-label="Navigation principale" className="ml-6 hidden min-w-0 items-center gap-1 lg:flex">
+          <Button variant="ghost" size="sm" onClick={back}><Compass /> Vue d'ensemble</Button>
+          <Button variant="ghost" size="sm" onClick={() => setAvatarEditor(true)}><User /> Profil</Button>
+          <Button variant="ghost" size="sm" onClick={() => setDrawer("suivi")}><Clock /> Chronologie et parcours</Button>
         </nav>
-        <div className="ml-auto flex items-center gap-2 md:hidden">
-          {selected ? (
-            <Button variant="ghost" onClick={back} aria-label="Revenir à l'arbre complet" className="btn-back">← Arbre complet</Button>
-          ) : (
-            <>
-              <button className="btn-ghost" onClick={() => setDrawer(drawer === "profil" ? null : "profil")}>Profil</button>
-              <button className="btn-ghost" onClick={() => setDrawer(drawer === "suivi" ? null : "suivi")}>Suivi</button>
-            </>
-          )}
+        <div className="flex shrink-0 items-center gap-1 lg:hidden">
+          {selected ? <Button variant="outline" size="sm" onClick={back} aria-label="Revenir à l'arbre complet"><ArrowLeft /> Arbre complet</Button> : <><Button variant="ghost" size="sm" onClick={() => setDrawer("profil")}>Profil</Button><Button variant="ghost" size="sm" onClick={() => setDrawer("suivi")}>Suivi</Button></>}
         </div>
-        <p className="ml-auto hidden text-[10px] text-muted-foreground/70 md:block">Démonstration · données fictives</p>
+        <p className="ml-auto hidden text-xs text-muted-foreground lg:block">Démonstration · données fictives</p>
       </header>
-
-      <div className="flex min-h-0 flex-1 gap-3 p-3">
-        <div className="hidden w-52 shrink-0 lg:block">
-          <ProfileSidebar hidden={hidden} onToggle={toggle} onOpen={open} />
-        </div>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className={`tree-frame relative min-h-0 flex-1 transition-all duration-700 ${selected ? "max-md:flex-[0_0_44%]" : ""}`}>
-            {!selected && (
-              <p className="pointer-events-none absolute inset-x-0 top-1 z-10 text-center text-xs text-muted-foreground">
-                Choisissez une branche ou un losange de fragilité
-              </p>
-            )}
-            {selected && (
-              <Button variant="ghost" onClick={back} aria-label="Revenir à l'arbre complet" className="btn-back absolute left-2 top-2 z-20 hidden md:block">← Arbre complet</Button>
-            )}
-            <LifeTree focusId={focus} selectedNode={node} onFocus={open} onNode={setNode} onBack={back}
-              hidden={hidden} fragilityId={frag} onFragility={openFrag} onFactor={setFactorId} selectedFactor={factorId} />
+      <div className="dashboard-grid min-h-0 flex-1">
+        <div className="hidden min-h-0 lg:block">{profile}</div>
+        <div className="scene-column relative flex min-h-0 min-w-0 flex-col">
+          <div className="scene-heading grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2">
+            <p className="min-w-0 font-display text-xl text-foreground">Potentiel et épanouissement</p>
+            {selected && <Button variant="outline" size="sm" onClick={back} aria-label="Revenir à l'arbre complet" className="hidden lg:inline-flex"><ArrowLeft /> Arbre complet</Button>}
           </div>
-          <div className="hidden h-44 shrink-0 md:block"><FollowUpZone onDomain={open} /></div>
-          {selected && (
-            <div className="min-h-0 flex-1 md:hidden">
-              {domain && <DomainPanel key={domain.id} domain={domain} selectedNode={node} onNode={setNode} onBack={back} />}
-              {factor ? <FactorPanel factor={factor} onNetwork={() => setFactorId(null)} onBack={back} /> : fragility && <FragilityPanel key={fragility.id} f={fragility} onBack={back} onDomain={open} onFactor={setFactorId} />}
-            </div>
-          )}
-        </div>
-
-        {selected && (
-          <div className="hidden w-[340px] lg:w-[380px] shrink-0 md:block">
-            {domain && <DomainPanel key={domain.id} domain={domain} selectedNode={node} onNode={setNode} onBack={back} />}
-            {factor ? <FactorPanel factor={factor} onNetwork={() => setFactorId(null)} onBack={back} /> : fragility && <FragilityPanel key={fragility.id} f={fragility} onBack={back} onDomain={open} onFactor={setFactorId} />}
+          <div className="tree-frame relative min-h-0 flex-1">
+            <LifeTree focusId={focus} selectedNode={node} onFocus={open} onNode={setNode} onBack={back} hidden={hidden} fragilityId={frag} onFragility={openFrag} onFactor={setFactorId} selectedFactor={factorId} avatar={avatar} />
           </div>
-        )}
+        </div>
+        <div className="details-column hidden min-h-0 lg:block">{details ?? <aside className="glass-panel flex h-full flex-col gap-6 overflow-y-auto p-5">
+          <p className="eyebrow">Accompagnement · Léo, 8 ans</p><h2 className="font-display text-3xl">Ressources et découvertes</h2>
+          <div className="border-y border-border py-5"><Heart className="mb-3 text-gold" /><h3 className="font-display text-2xl">Identifier ses émotions</h3><p className="mt-2 text-sm text-muted-foreground">Repères observés, ressources présentes et pistes d’accompagnement.</p><Button variant="outline" className="mt-4 w-full" onClick={() => open("emotionnel")}>Explorer Émotionnel</Button></div>
+          <div><ShieldCheck className="mb-3 text-primary" /><h3 className="font-display text-2xl">Contextes et protection</h3><Button variant="outline" className="mt-4 w-full" onClick={() => openFrag("f-anxiete")}>Examiner l’anxiété</Button></div>
+        </aside>}</div>
+        <div className="followup-column hidden min-h-0 lg:block"><FollowUpZone onDomain={open} onFragility={openFrag} /></div>
       </div>
-
-      {drawer && (
-        <div className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm md:hidden" onClick={() => setDrawer(null)}>
-          <div className={drawer === "profil" ? "absolute inset-y-3 left-3 w-[80%] max-w-xs" : "absolute inset-x-3 bottom-3 h-[55%]"} onClick={(e) => e.stopPropagation()}>
-            {drawer === "profil" ? <ProfileSidebar hidden={hidden} onToggle={toggle} onOpen={open} /> : <FollowUpZone onDomain={open} />}
-          </div>
+      {selected && <div className="mobile-details fixed inset-x-3 bottom-3 z-30 lg:hidden">{details}</div>}
+      {drawer && <div className="fixed inset-0 z-50 bg-background/80 p-3 backdrop-blur-sm" onClick={() => setDrawer(null)}>
+        <div className={drawer === "profil" ? "relative h-full w-[90%] max-w-xs" : "absolute inset-x-3 bottom-3 h-[65%]"} onClick={(e) => e.stopPropagation()}>
+          <Button variant="outline" size="sm" className="absolute right-3 top-3 z-10" onClick={() => setDrawer(null)}>Fermer</Button>
+          {drawer === "profil" ? profile : <FollowUpZone onDomain={open} onFragility={openFrag} />}
         </div>
-      )}
+      </div>}
+      {avatarEditor && <AvatarCustomizer options={avatar} onChange={setAvatar} onClose={() => setAvatarEditor(false)} />}
     </main>
   );
 }
