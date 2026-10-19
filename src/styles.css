@@ -257,3 +257,4 @@
 .status-venir { opacity: 0.75; border-style: dashed; }
 @media (max-width: 767px) { .frag-label { font-size: 16px; } }
 .branch > path, .foliage { pointer-events: none; }
+.branch-hit .branch-label { pointer-events: auto; cursor: pointer; }
