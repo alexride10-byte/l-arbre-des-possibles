@@ -52,7 +52,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "emotionnel",
     name: "Émotionnel",
-    hue: 200,
+    hue: 88,
     intro:
       "Reconnaissance, expression et régulation des émotions, dans un contexte donné et à un moment donné.",
     nodes: [
@@ -87,7 +87,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "social",
     name: "Social et relationnel",
-    hue: 175,
+    hue: 300,
     intro: "Qualité des liens avec les pairs et les adultes, coopération, place dans le groupe.",
     nodes: [
       { id: "s1", label: "Coopération", kind: "competence", note: "Partage le matériel en atelier dirigé." },
@@ -104,7 +104,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "cognitif",
     name: "Cognitif",
-    hue: 85,
+    hue: 250,
     intro: "Attention, mémoire, raisonnement, langage et fonctions exécutives.",
     nodes: [
       { id: "c1", label: "Curiosité", kind: "competence", note: "Pose de nombreuses questions sur la nature." },
@@ -121,7 +121,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "scolaire",
     name: "Scolaire et apprentissages",
-    hue: 55,
+    hue: 50,
     intro: "Rapport aux apprentissages, acquisitions, méthodes et motivation.",
     nodes: [
       { id: "a1", label: "Numération", kind: "competence", note: "Dénombre jusqu'à 20 avec aisance." },
@@ -138,7 +138,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "sante",
     name: "Santé et bien-être",
-    hue: 150,
+    hue: 22,
     intro: "Sommeil, alimentation, motricité, sensorialité et confort global.",
     nodes: [
       { id: "h1", label: "Motricité globale", kind: "competence", note: "Aime courir, grimper, s'équilibrer." },
@@ -155,7 +155,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "autonomie",
     name: "Autonomie et vie quotidienne",
-    hue: 30,
+    hue: 145,
     intro: "Gestes du quotidien, organisation, initiative et prise de responsabilités.",
     nodes: [
       { id: "u1", label: "Habillage", kind: "competence", note: "Met son manteau seul." },
