@@ -13,3 +13,5 @@
 - Sample data lives in `src/data/`, SVG geometry in `src/lib/tree-geometry.ts`, visual components in `src/components/tree/` — keeps data, logic and visuals swappable.
 - Observations persist via `src/lib/local-observations.ts` (browser localStorage, no network); swap the repository for encrypted/desktop storage later.
 - Storage and AI go through interfaces in `src/lib/services.ts` — so a local store / local AI can be plugged in later without touching UI.
+- Page layout pieces (profile sidebar, follow-up zone) live in `src/components/layout/`; fragility and quest sample data in `src/data/fragilities.ts` / `src/data/quests.ts` — keeps tree visuals independent of the dashboard shell.
+- Tree decorative paths (bark, foliage) must stay `pointer-events: none`; only hit groups, labels and nodes receive clicks — otherwise neighbouring leaves swallow clicks.
