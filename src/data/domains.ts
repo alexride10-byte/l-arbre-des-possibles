@@ -52,7 +52,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "emotionnel",
     name: "Émotionnel",
-    hue: 75,
+    hue: 88,
     intro:
       "Reconnaissance, expression et régulation des émotions, dans un contexte donné et à un moment donné.",
     nodes: [
@@ -121,7 +121,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "scolaire",
     name: "Scolaire et apprentissages",
-    hue: 55,
+    hue: 50,
     intro: "Rapport aux apprentissages, acquisitions, méthodes et motivation.",
     nodes: [
       { id: "a1", label: "Numération", kind: "competence", note: "Dénombre jusqu'à 20 avec aisance." },
@@ -155,7 +155,7 @@ export const DOMAINS: Domain[] = [
   {
     id: "autonomie",
     name: "Autonomie et vie quotidienne",
-    hue: 30,
+    hue: 145,
     intro: "Gestes du quotidien, organisation, initiative et prise de responsabilités.",
     nodes: [
       { id: "u1", label: "Habillage", kind: "competence", note: "Met son manteau seul." },
