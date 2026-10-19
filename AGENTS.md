@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Enfance+ architecture
+- Sample data lives in `src/data/`, SVG geometry in `src/lib/tree-geometry.ts`, visual components in `src/components/tree/` — keeps data, logic and visuals swappable.
+- Storage and AI go through interfaces in `src/lib/services.ts` — so a local store / local AI can be plugged in later without touching UI.
