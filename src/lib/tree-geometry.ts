@@ -99,7 +99,6 @@ function grow(from: P, ang: number, len: number, w: number, depth: number, r: ()
 }
 
 export function branchGeometry(domains: Domain[]): BranchGeo[] {
-  const n = domains.length;
   return domains.map((d, i) => {
     const r = seeded(11 + i * 37);
     const crowns: Record<string, P> = {

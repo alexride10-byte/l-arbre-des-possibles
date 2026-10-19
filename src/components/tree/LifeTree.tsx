@@ -49,7 +49,6 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
   const focusedGeo = geo[fi];
   const cam = focusedGeo ? { x: focusedGeo.end.x, y: focusedGeo.end.y + 5, s: mobile ? 2.5 : 2.7 } : { x: cx, y: cy, s: 1 };
   const frag = FRAGILITIES.find((f) => f.id === fragilityId);
-  const fragIdx = FRAGILITIES.findIndex((f) => f.id === fragilityId);
   if (frag && fi < 0) { cam.x = cx; cam.y = cy; cam.s = 1; }
   const transform = `translate(${cx}px, ${cy}px) scale(${cam.s}) translate(${-cam.x}px, ${-cam.y}px)`;
 
@@ -116,6 +115,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
           {roots.map((r, i) => (
             <g key={i}>
               <path d={r.body} fill="url(#barkV)" opacity={r.label ? 0.95 : 0.6} />
+              <path d={`M${r.end.x},${r.end.y} q${(r.end.x - 500) * 0.13},18 ${(r.end.x - 500) * 0.22},27`} stroke="var(--bark-light)" strokeWidth="2.5" fill="none" pointerEvents="none" />
               <path d={r.spine} stroke="var(--tree-aura)" strokeWidth="0.8" fill="none" opacity="0.5" className="sap" />
               {r.label && !frag && (
                 <>
@@ -141,6 +141,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
               {g.twigs.map((t, k) => <path key={k} d={t} fill={`url(#wood-${d.id})`} />)}
               <path d={g.body} fill={`url(#wood-${d.id})`} />
               <path d={g.body} fill="var(--bark-light)" filter="url(#grain)" />
+              <path d={g.spine} stroke={domainColor(d.id)} strokeWidth="10" fill="none" opacity="0.14" filter="url(#soft)" pointerEvents="none" />
               <path d={g.spine} stroke={domainColor(d.id)} strokeWidth="2.6" fill="none" className="sap" filter="url(#halo)" opacity="0.8" />
               <g className="foliage">
                 {g.leaves.map((l, k) => (
@@ -203,24 +204,11 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
           <path key={i} d={v} stroke={i % 3 === 1 ? "var(--tree-aura)" : "var(--bark-dark)"} strokeWidth={i % 3 === 1 ? 0.9 : 1.6}
             fill="none" opacity={i % 3 === 1 ? 0.45 : 0.7} className={i % 3 === 1 ? "sap" : undefined} />
         ))}
+        <path d={trunk.spine} stroke="var(--gold)" strokeWidth="20" fill="none" opacity="0.23" filter="url(#soft)" pointerEvents="none" />
         <path d={trunk.spine} stroke="var(--gold)" strokeWidth="1.4" fill="none" className="sap" filter="url(#halo)" />
         <ellipse cx="500" cy="470" rx="100" ry="150" fill="url(#heart)" className="core" pointerEvents="none" />
 
         {/* Défis et fragilités : nœuds distincts (losanges), liens = relations possibles */}
-        {false && frag && FRAG_POS[fragIdx] && (
-          <g pointerEvents="none" className="frag-links">
-            {frag.domains.map((id) => {
-              const k = DOMAINS.findIndex((d) => d.id === id); const e = geo[k]?.end; const s0 = FRAG_POS[fragIdx];
-              if (!s0) return null;
-              return e ? <path key={id} d={`M${s0.x},${s0.y} Q${(s0.x + e.x) / 2 + (e.x < 500 ? -60 : 60)},${(s0.y + e.y) / 2} ${e.x},${e.y}`} stroke="var(--fragility)" strokeWidth="1.2" strokeDasharray="4 5" fill="none" className="dash-flow" /> : null;
-            })}
-            {frag.contexts.map((c) => {
-              const r = roots.find((x) => x.label === c); const s0 = FRAG_POS[fragIdx];
-              if (!s0) return null;
-              return r ? <path key={c} d={`M${s0.x},${s0.y} Q${(s0.x + r.end.x) / 2},${s0.y + 30} ${r.end.x},${r.end.y}`} stroke="var(--gold)" strokeWidth="1" strokeDasharray="3 5" fill="none" className="dash-flow" /> : null;
-            })}
-          </g>
-        )}
         {frag && onFactor && <FactorNetwork fragilityId={frag.id} selectedFactor={selectedFactor} onFactor={onFactor} />}
         {!focusId && !frag && <text x="500" y="590" textAnchor="middle" className="challenge-title">DÉFIS ET FRAGILITÉS ÉVOLUTIVES</text>}
         <g style={{ opacity: focusId ? 0.25 : 1, transition: "opacity .6s" }}>
@@ -237,7 +225,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
                   fill="var(--background)" stroke="var(--fragility)" strokeWidth={sel ? 2 : 1.2} filter="url(#halo)" />
                 <circle cx={p.x} cy={p.y} r="17" fill="var(--background)" stroke="var(--fragility)" strokeWidth={sel ? 2.5 : 1} filter="url(#halo)" />
                 <FragIcon x={p.x - 10} y={p.y - 10} width="20" height="20" color="var(--fragility)" />
-                <text x={p.x} y={p.y + 32} textAnchor="middle" className="frag-label">{short}</text>
+                <text x={p.x} y={p.y + 32} textAnchor="middle" className="frag-label">{short.replace("Gestion des conflits", "Conflits")}</text>
               </g>
             );
           })}
