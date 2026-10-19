@@ -158,7 +158,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onFocus(d.id); } }}
               >
                 <path d={g.spine} stroke="transparent" strokeWidth="40" fill="none" />
-                <circle cx={g.end.x} cy={g.end.y} r="60" fill="transparent" />
+                <circle cx={g.end.x} cy={g.end.y} r="60" fill="transparent" data-domain-target={d.id} />
                 <circle cx={g.end.x} cy={g.end.y} r={active ? 4 : 6} fill={domainColor(d.id)} filter="url(#halo)" className="core" />
                 {!focusId && <g className="domain-medallion" pointerEvents="none">
                   <circle cx={g.end.x} cy={g.end.y} r="22" fill="var(--background)" fillOpacity="0.85" stroke={domainColor(d.id)} strokeWidth="2" filter="url(#halo)" />
@@ -209,7 +209,7 @@ export function LifeTree({ focusId, selectedNode, onFocus, onNode, onBack, hidde
         <ellipse cx="500" cy="470" rx="100" ry="150" fill="url(#heart)" className="core" pointerEvents="none" />
 
         {/* Défis et fragilités : nœuds distincts (losanges), liens = relations possibles */}
-        {frag && onFactor && <FactorNetwork fragilityId={frag.id} selectedFactor={selectedFactor} onFactor={onFactor} />}
+        {frag && onFactor && <FactorNetwork fragilityId={frag.id} selectedFactor={selectedFactor ?? null} onFactor={onFactor} />}
         {!focusId && !frag && <text x="500" y="590" textAnchor="middle" className="challenge-title">DÉFIS ET FRAGILITÉS ÉVOLUTIVES</text>}
         <g style={{ opacity: focusId ? 0.25 : 1, transition: "opacity .6s" }}>
           {FRAGILITIES.map((f, i) => {
