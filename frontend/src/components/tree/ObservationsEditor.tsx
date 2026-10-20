@@ -49,7 +49,7 @@ export function ObservationsEditor({ domainId }: { domainId: string }) {
         {shown.map((o) => (
           <li key={o.obs_id} className="border-l border-gold/50 pl-3 text-sm" data-testid={`observation-item-${o.obs_id}`}>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">{frDate(o.date)}</span>
+              <span className="text-xs text-muted-foreground">{frDate(o.date)}{o.author && ` · ${o.author}`}</span>
               <span className="flex gap-3 text-xs text-muted-foreground">
                 <button className="hover:text-foreground" onClick={() => setDraft({ obs_id: o.obs_id, date: o.date, fact: o.fact, context: o.context })} data-testid={`observation-edit-${o.obs_id}`}>Modifier</button>
                 <button className="hover:text-red-300" onClick={async () => { await send(`${base}/${o.obs_id}`, "DELETE"); reloadObs(); }} data-testid={`observation-delete-${o.obs_id}`}>Supprimer</button>

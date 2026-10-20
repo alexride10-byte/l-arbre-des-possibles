@@ -15,6 +15,7 @@ export interface Quest {
   domainId: string;
   term: string;
   steps: QuestStep[];
+  custom?: boolean;
 }
 
 export const QUESTS: Quest[] = [

@@ -41,6 +41,7 @@ export function LeftSidebar({ onNavigate }: { onNavigate?: () => void }) {
         <p className="text-xs text-muted-foreground">{child.age} ans{child.grade && ` • ${child.grade}`}</p>
         <div className="mt-2 flex flex-wrap gap-2">
           <span className="pill-green" data-testid="sidebar-profile-active">● Profil actif</span>
+          {child.owner_name && <span className="pill-muted" data-testid="sidebar-shared-by">Partagé par {child.owner_name}</span>}
           <span className="pill-muted" data-testid="sidebar-xp-level">Niv. {lvl.level} · {child.xp} XP</span>
         </div>
         {profiles.length > 1 && (

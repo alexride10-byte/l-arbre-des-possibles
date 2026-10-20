@@ -5,8 +5,8 @@ import { Logo } from "./Logo";
 import { useApp } from "@/context/AppContext";
 import { DOMAINS } from "@/data/domains";
 import { FRAGILITIES } from "@/data/fragilities";
-import { QUESTS } from "@/data/quests";
-import { stepStatus } from "@/lib/rpg";
+import { allQuests, stepStatus } from "@/lib/rpg";
+import { AiSettings } from "@/components/assistant/AiSettings";
 
 const NAV = [
   ["/", "Vue d'ensemble", Compass], ["/profil", "Profil", User], ["/arbre", "Arbre de développement", Network],
@@ -42,7 +42,7 @@ function SearchBox() {
 function Notifications() {
   const { child } = useApp();
   const [open, setOpen] = useState(false);
-  const pending = child ? QUESTS.flatMap((q) => q.steps.map((s, i) => ({ q, s, st: stepStatus(child, q.id, i, s.status) }))).filter((x) => x.st === "en cours") : [];
+  const pending = child ? allQuests(child).flatMap((q) => q.steps.map((s, i) => ({ q, s, st: stepStatus(child, q.id, i, s.status) }))).filter((x) => x.st === "en cours") : [];
   return (
     <div className="relative">
       <button className="icon-btn" onClick={() => setOpen(!open)} aria-label="Notifications" data-testid="notifications-button">
@@ -73,6 +73,7 @@ function SettingsMenu() {
         <div className="popover absolute right-0 top-12 z-50 w-72 space-y-3 p-4" data-testid="settings-popover">
           <p className="text-sm font-semibold">{user.name}</p>
           <p className="text-xs text-muted-foreground">{user.email}</p>
+          <AiSettings />
           <p className="eyebrow pt-2">Je suis</p>
           <div className="grid grid-cols-2 gap-2">
             {(["pro", "parent"] as const).map((a) => (

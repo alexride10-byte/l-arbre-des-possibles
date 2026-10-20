@@ -1,6 +1,8 @@
 import type { Child, Observation, StepStatus } from "./api";
 import { DOMAINS } from "@/data/domains";
-import { QUESTS } from "@/data/quests";
+import { QUESTS, type Quest } from "@/data/quests";
+
+export const allQuests = (child: Child): Quest[] => [...QUESTS, ...(child.custom_quests ?? [])];
 
 export type ScenarioId = "actuel" | "interventions" | "stable" | "risque";
 
@@ -11,7 +13,7 @@ export const stepStatus = (child: Child, questId: string, idx: number, fallback:
   child.quest_steps[`${questId}:${idx}`]?.status ?? fallback;
 
 export const doneSteps = (child: Child) =>
-  QUESTS.reduce((n, q) => n + q.steps.filter((s, i) => stepStatus(child, q.id, i, s.status) === "fait").length, 0);
+  allQuests(child).reduce((n, q) => n + q.steps.filter((s, i) => stepStatus(child, q.id, i, s.status) === "fait").length, 0);
 
 export const SCENARIOS: { id: ScenarioId; label: string; color: string }[] = [
   { id: "actuel", label: "Scénario actuel", color: "#60a5fa" },
@@ -68,7 +70,7 @@ export interface Badge { id: string; label: string; desc: string; earned: boolea
 
 export function badges(child: Child, obs: Observation[]): Badge[] {
   const done = doneSteps(child);
-  const questDone = QUESTS.some((q) => q.steps.every((s, i) => stepStatus(child, q.id, i, s.status) === "fait"));
+  const questDone = allQuests(child).some((q) => q.steps.every((s, i) => stepStatus(child, q.id, i, s.status) === "fait"));
   const lv = Object.values(child.levels);
   return [
     { id: "premiers-pas", label: "Premiers pas", desc: "Enregistrer une première observation", earned: obs.length >= 1 },

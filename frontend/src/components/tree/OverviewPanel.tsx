@@ -1,4 +1,5 @@
-import { Award, Lock, Sparkles, Sprout } from "lucide-react";
+import { Award, Lock, Sparkles, Sprout, IdCard } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { DOMAINS } from "@/data/domains";
 import { DOMAIN_ICON, domainColor } from "@/lib/icons";
@@ -6,6 +7,7 @@ import { badges, xpLevel } from "@/lib/rpg";
 
 export function OverviewPanel() {
   const { child, observations, openDomain, openAssistant } = useApp();
+  const navigate = useNavigate();
   if (!child) return null;
   const lvl = xpLevel(child.xp);
   const list = badges(child, observations);
@@ -43,7 +45,8 @@ export function OverviewPanel() {
           ))}
         </div>
       </section>
-      <button className="btn-ai mt-auto w-full justify-center" onClick={() => openAssistant(`Quelles sont les 3 priorités d'accompagnement pour ${child.name} en ce moment ?`)} data-testid="overview-ai-priorities"><Sparkles size={15} /> Priorités suggérées par l'IA</button>
+      <button className="btn-outline mt-auto w-full" onClick={() => navigate("/carte")} data-testid="overview-progress-card"><IdCard size={15} /> Carte de progrès à partager</button>
+      <button className="btn-ai w-full justify-center" onClick={() => openAssistant(`Quelles sont les 3 priorités d'accompagnement pour ${child.name} en ce moment ?`)} data-testid="overview-ai-priorities"><Sparkles size={15} /> Priorités suggérées par l'IA</button>
     </aside>
   );
 }

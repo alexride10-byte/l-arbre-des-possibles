@@ -130,6 +130,8 @@ def new_child_doc(user_id: str, data: ChildIn) -> dict:
         "initial_levels": dict(DEFAULT_LEVELS),
         "level_history": [],
         "quest_steps": {},
+        "shares": [],
+        "custom_quests": [],
         "xp": 0,
         "created_at": now_iso(),
     }
@@ -162,7 +164,8 @@ async def create_session(body: SessionIn, response: Response):
     response.set_cookie("session_token", data["session_token"], httponly=True, secure=True, samesite="none",
                         path="/", max_age=7 * 24 * 3600)
     await seed_demo_child(user_id)
-    return await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    return {**user, "session_token": data["session_token"]}
 
 
 @api.get("/auth/me")
@@ -181,7 +184,8 @@ async def update_me(body: MeIn, request: Request):
 
 @api.post("/auth/logout")
 async def logout(request: Request, response: Response):
-    token = request.cookies.get("session_token")
+    auth = request.headers.get("Authorization", "")
+    token = request.cookies.get("session_token") or (auth[7:] if auth.startswith("Bearer ") else None)
     if token:
         await db.user_sessions.delete_one({"session_token": token})
     response.delete_cookie("session_token", path="/", secure=True, samesite="none")
@@ -191,16 +195,30 @@ async def logout(request: Request, response: Response):
 # ---------- Children ----------
 async def get_child(request: Request, child_id: str) -> tuple[dict, dict]:
     user = await current_user(request)
-    child = await db.children.find_one({"child_id": child_id, "user_id": user["user_id"]}, {"_id": 0})
-    if not child:
+    child = await db.children.find_one({"child_id": child_id}, {"_id": 0})
+    shared = child and user["email"].lower() in [x["email"] for x in child.get("shares", [])]
+    if not child or (child["user_id"] != user["user_id"] and not shared):
         raise HTTPException(404, "Profil introuvable")
+    return user, child
+
+
+async def get_owned_child(request: Request, child_id: str) -> tuple[dict, dict]:
+    user, child = await get_child(request, child_id)
+    if child["user_id"] != user["user_id"]:
+        raise HTTPException(403, "Réservé au propriétaire du profil")
     return user, child
 
 
 @api.get("/children")
 async def list_children(request: Request):
     user = await current_user(request)
-    return await db.children.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", 1).to_list(100)
+    q = {"$or": [{"user_id": user["user_id"]}, {"shares.email": user["email"].lower()}]}
+    kids = await db.children.find(q, {"_id": 0}).sort("created_at", 1).to_list(100)
+    for k in kids:
+        if k["user_id"] != user["user_id"]:
+            owner = await db.users.find_one({"user_id": k["user_id"]}, {"_id": 0, "name": 1})
+            k["owner_name"] = (owner or {}).get("name", "Inconnu")
+    return kids
 
 
 @api.post("/children")
@@ -228,7 +246,7 @@ async def update_child(child_id: str, body: ChildPatch, request: Request):
 
 @api.delete("/children/{child_id}")
 async def delete_child(child_id: str, request: Request):
-    await get_child(request, child_id)
+    await get_owned_child(request, child_id)
     await db.children.delete_one({"child_id": child_id})
     await db.observations.delete_many({"child_id": child_id})
     await db.ai_messages.delete_many({"child_id": child_id})
@@ -269,8 +287,8 @@ async def list_obs(child_id: str, request: Request, domain_id: Optional[str] = N
 
 @api.post("/children/{child_id}/observations")
 async def create_obs(child_id: str, body: ObservationIn, request: Request):
-    await get_child(request, child_id)
-    doc = {"obs_id": f"obs_{uuid.uuid4().hex[:12]}", "child_id": child_id, **body.model_dump(), "created_at": now_iso()}
+    user, _ = await get_child(request, child_id)
+    doc = {"obs_id": f"obs_{uuid.uuid4().hex[:12]}", "child_id": child_id, **body.model_dump(), "author": user["name"], "created_at": now_iso()}
     await db.observations.insert_one(doc)
     await db.children.update_one({"child_id": child_id}, {"$inc": {"xp": XP_OBS}})
     doc.pop("_id", None)
@@ -314,6 +332,95 @@ Règles impératives :
 - Propose des pistes concrètes, bienveillantes, avec un horizon (court / moyen terme) et des indicateurs d'évolution.
 - Oriente vers les professionnels adaptés (médecin, psychologue, PMI, école) quand c'est pertinent.
 - En cas de suspicion de danger ou de maltraitance : priorité à la sécurité, appeler le 119 (Allô Enfance en Danger) ou le 15/17 en urgence."""
+
+
+# ---------- Partage ----------
+class ShareIn(BaseModel):
+    email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    role: Literal["parent", "pro"]
+
+
+@api.post("/children/{child_id}/shares")
+async def add_share(child_id: str, body: ShareIn, request: Request):
+    user, child = await get_owned_child(request, child_id)
+    email = body.email.lower()
+    if email == user["email"].lower():
+        raise HTTPException(400, "Vous êtes déjà propriétaire de ce profil")
+    shares = [x for x in child.get("shares", []) if x["email"] != email] + [{"email": email, "role": body.role, "date": now_iso()}]
+    await db.children.update_one({"child_id": child_id}, {"$set": {"shares": shares}})
+    return (await get_child(request, child_id))[1]
+
+
+@api.delete("/children/{child_id}/shares/{email}")
+async def remove_share(child_id: str, email: str, request: Request):
+    _, child = await get_owned_child(request, child_id)
+    shares = [x for x in child.get("shares", []) if x["email"] != email.lower()]
+    await db.children.update_one({"child_id": child_id}, {"$set": {"shares": shares}})
+    return (await get_child(request, child_id))[1]
+
+
+# ---------- Quêtes personnalisées ----------
+class QuestStepIn(BaseModel):
+    title: str = Field(min_length=1, max_length=80)
+    objective: str = ""
+    action: str = ""
+    resource: str = ""
+    indicator: str = ""
+
+
+class QuestIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    domainId: str
+    term: str = "Moyen terme (1–3 mois)"
+    steps: list[QuestStepIn] = Field(min_length=1, max_length=6)
+
+
+class QuestGenIn(BaseModel):
+    domain_id: str
+    goal: str = Field(default="", max_length=300)
+
+
+async def store_quest(child_id: str, q: QuestIn) -> dict:
+    if q.domainId not in DOMAIN_IDS:
+        raise HTTPException(400, "Domaine inconnu")
+    quest = {"id": f"cq_{uuid.uuid4().hex[:10]}", **q.model_dump(), "custom": True,
+             "steps": [{**s.model_dump(), "status": "à venir"} for s in q.steps]}
+    await db.children.update_one({"child_id": child_id}, {"$push": {"custom_quests": quest}})
+    return quest
+
+
+@api.post("/children/{child_id}/quests")
+async def save_quest(child_id: str, body: QuestIn, request: Request):
+    await get_child(request, child_id)
+    await store_quest(child_id, body)
+    return (await get_child(request, child_id))[1]
+
+
+@api.post("/children/{child_id}/quests/generate")
+async def generate_quest(child_id: str, body: QuestGenIn, request: Request):
+    user, child = await get_child(request, child_id)
+    obs = await db.observations.find({"child_id": child_id}, {"_id": 0}).sort("date", -1).to_list(30)
+    chat = LlmChat(api_key=LLM_KEY, session_id=f"quest-{uuid.uuid4().hex[:8]}",
+                   system_message=system_prompt(user, child, obs)).with_model("anthropic", "claude-sonnet-5-5")
+    prompt = (f"Crée une quête d'accompagnement pour le domaine « {body.domain_id} »"
+              + (f" avec cet objectif : {body.goal}" if body.goal else "")
+              + '. Réponds UNIQUEMENT avec un JSON valide, sans texte autour : {"title": "...", "term": "Court terme (2–4 semaines)" | "Moyen terme (1–3 mois)" | "Long terme (3–6 mois)", '
+              '"steps": [{"title": "1 à 3 mots", "objective": "...", "action": "...", "resource": "...", "indicator": "..."}]} avec 3 ou 4 étapes concrètes et bienveillantes.')
+    raw = await chat.send_message(UserMessage(text=prompt))
+    try:
+        data = json.loads(raw[raw.index("{"): raw.rindex("}") + 1])
+        quest = QuestIn(**{**data, "domainId": body.domain_id})
+    except Exception:
+        raise HTTPException(502, "L'IA n'a pas renvoyé une quête exploitable, réessayez.")
+    await store_quest(child_id, quest)
+    return (await get_child(request, child_id))[1]
+
+
+@api.delete("/children/{child_id}/quests/{quest_id}")
+async def delete_quest(child_id: str, quest_id: str, request: Request):
+    await get_child(request, child_id)
+    await db.children.update_one({"child_id": child_id}, {"$pull": {"custom_quests": {"id": quest_id}}})
+    return (await get_child(request, child_id))[1]
 
 
 @api.get("/children/{child_id}/assistant")
@@ -367,10 +474,18 @@ async def root():
 
 
 app.include_router(api)
+
+
+@app.middleware("http")
+async def log_preflight_origin(request: Request, call_next):
+    if request.method == "OPTIONS":
+        print("PREFLIGHT ORIGIN:", request.headers.get("origin"), flush=True)
+    return await call_next(request)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=os.environ["CORS_ORIGINS"].split(","),
+    allow_origin_regex=os.environ["CORS_ORIGIN_REGEX"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

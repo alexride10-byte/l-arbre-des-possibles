@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, send, type Child, type Observation, type StepStatus, type User } from "@/lib/api";
+import { api, send, setToken, type Child, type Observation, type StepStatus, type User } from "@/lib/api";
 import type { ScenarioId } from "@/lib/rpg";
 
 export type Mode = "actuelle" | "simulation" | "comparaison";
@@ -50,7 +50,7 @@ export function AppProvider({ initialUser, children }: { initialUser: User; chil
 
   const value: AppCtx = {
     user, setUser,
-    logout: async () => { await send("/auth/logout", "POST"); window.location.href = "/"; },
+    logout: async () => { await send("/auth/logout", "POST"); setToken(null); window.location.href = "/"; },
     profiles, child, reloadProfiles, saveChild,
     selectChild: (id) => { localStorage.setItem(KEY, id); setChildId(id); back(); },
     observations, reloadObs,

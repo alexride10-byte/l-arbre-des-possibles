@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { api, send, type User } from "@/lib/api";
+import { api, send, setToken, type User } from "@/lib/api";
 import { AppProvider } from "@/context/AppContext";
 import { AppShell } from "@/components/layout/AppShell";
 import Login from "@/pages/Login";
@@ -11,6 +11,7 @@ import TimelinePage from "@/pages/TimelinePage";
 import InterventionsPage from "@/pages/InterventionsPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import DocumentsPage from "@/pages/DocumentsPage";
+import ProgressCardPage from "@/pages/ProgressCardPage";
 
 function AuthCallback() {
   const location = useLocation();
@@ -20,8 +21,8 @@ function AuthCallback() {
     if (done.current) return;
     done.current = true;
     const sessionId = new URLSearchParams(location.hash.slice(1)).get("session_id");
-    send<User>("/auth/session", "POST", { session_id: sessionId })
-      .then((user) => navigate("/", { replace: true, state: { user } }))
+    send<User & { session_token: string }>("/auth/session", "POST", { session_id: sessionId })
+      .then(({ session_token, ...user }) => { setToken(session_token); navigate("/", { replace: true, state: { user } }); })
       .catch(() => navigate("/", { replace: true }));
   }, [location.hash, navigate]);
   return <Splash />;
@@ -54,6 +55,7 @@ function Gate() {
           <Route path="/interventions" element={<InterventionsPage />} />
           <Route path="/ressources" element={<ResourcesPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/carte" element={<ProgressCardPage />} />
           <Route path="*" element={<Overview />} />
         </Routes>
       </AppShell>

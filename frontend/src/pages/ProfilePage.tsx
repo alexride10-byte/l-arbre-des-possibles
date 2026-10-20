@@ -5,9 +5,10 @@ import { send, type Child } from "@/lib/api";
 import { AvatarIllustration } from "@/components/layout/AvatarIllustration";
 import { AvatarCustomizer } from "@/components/layout/AvatarCustomizer";
 import { xpLevel } from "@/lib/rpg";
+import { SharePanel } from "@/components/layout/SharePanel";
 
 export default function ProfilePage() {
-  const { child, profiles, selectChild, saveChild, reloadProfiles } = useApp();
+  const { child, profiles, selectChild, saveChild, reloadProfiles, user } = useApp();
   const [form, setForm] = useState({ name: "", age: 8, grade: "", notes: "" });
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [newKid, setNewKid] = useState({ name: "", age: 6, grade: "" });
@@ -55,7 +56,8 @@ export default function ProfilePage() {
                 <span className="h-10 w-9 overflow-hidden rounded-md bg-muted"><AvatarIllustration options={p.avatar} className="h-full w-full" /></span>
                 <span><span className="block text-sm font-semibold">{p.name}</span><span className="text-xs text-muted-foreground">{p.age} ans {p.grade && `· ${p.grade}`}</span></span>
               </button>
-              {profiles.length > 1 && <button className="icon-btn h-8 w-8" onClick={() => remove(p.child_id)} aria-label="Supprimer" data-testid={`profile-delete-${p.child_id}`}><Trash2 size={14} /></button>}
+              {p.owner_name && <span className="pill-muted">Partagé</span>}
+              {profiles.length > 1 && p.user_id === user.user_id && <button className="icon-btn h-8 w-8" onClick={() => remove(p.child_id)} aria-label="Supprimer" data-testid={`profile-delete-${p.child_id}`}><Trash2 size={14} /></button>}
             </li>
           ))}
         </ul>
@@ -69,6 +71,7 @@ export default function ProfilePage() {
           <button className="btn-outline w-full" type="submit" data-testid="new-profile-submit"><Plus size={15} /> Ajouter le profil</button>
         </form>
       </section>
+      <div className="xl:col-start-2"><SharePanel /></div>
       {avatarOpen && <AvatarCustomizer options={child.avatar} onChange={async (a) => saveChild(await send<Child>(`/children/${child.child_id}`, "PUT", { avatar: a }))} onClose={() => setAvatarOpen(false)} />}
     </div>
   );

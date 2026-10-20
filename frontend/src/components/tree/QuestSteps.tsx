@@ -1,15 +1,16 @@
-import { Check, Circle, Loader } from "lucide-react";
+import { Check, Circle, Loader, Trash2, Sparkles } from "lucide-react";
+import { send, type Child } from "@/lib/api";
 import type { Quest } from "@/data/quests";
-import type { StepStatus } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import { stepStatus } from "@/lib/rpg";
+import type { StepStatus } from "@/lib/api";
 import { domainColor } from "@/lib/icons";
 
 const NEXT: Record<StepStatus, StepStatus> = { "à venir": "en cours", "en cours": "fait", fait: "à venir" };
 const ICON = { fait: Check, "en cours": Loader, "à venir": Circle };
 
 export function QuestCard({ quest, detailed = false }: { quest: Quest; detailed?: boolean }) {
-  const { child, setStep } = useApp();
+  const { child, setStep, saveChild } = useApp();
   if (!child) return null;
   const statuses = quest.steps.map((s, i) => stepStatus(child, quest.id, i, s.status));
   const done = statuses.filter((s) => s === "fait").length;
@@ -17,7 +18,12 @@ export function QuestCard({ quest, detailed = false }: { quest: Quest; detailed?
     <article className="quest-card space-y-3" style={{ ["--c" as string]: domainColor(quest.domainId) }} data-testid={`quest-${quest.id}`}>
       <div className="flex items-start justify-between gap-2">
         <div><p className="text-sm font-semibold">{quest.title}</p><p className="text-[11px] text-muted-foreground">{quest.term}</p></div>
-        <span className="pill-muted shrink-0" data-testid={`quest-progress-${quest.id}`}>{done}/{quest.steps.length}</span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {quest.custom && <span className="pill-ai" title="Quête créée par l'IA"><Sparkles size={10} /> IA</span>}
+          <span className="pill-muted" data-testid={`quest-progress-${quest.id}`}>{done}/{quest.steps.length}</span>
+          {quest.custom && <button className="icon-btn h-7 w-7" aria-label="Supprimer la quête" data-testid={`quest-delete-${quest.id}`}
+            onClick={async () => { if (window.confirm("Supprimer cette quête ?")) saveChild(await send<Child>(`/children/${child.child_id}/quests/${quest.id}`, "DELETE")); }}><Trash2 size={13} /></button>}
+        </div>
       </div>
       <div className="level-track"><div className="level-fill quest-fill" style={{ width: `${(done / quest.steps.length) * 100}%` }} /></div>
       <ol className="space-y-1.5">

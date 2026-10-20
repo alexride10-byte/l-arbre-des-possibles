@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { FileText, Printer, Download, Sparkles } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { streamAssistant } from "@/lib/api";
+import { askAI, useAiConfig } from "@/lib/localAi";
+import { Link } from "react-router-dom";
 import { Markdown } from "@/components/assistant/Markdown";
 import { DOMAINS } from "@/data/domains";
 
@@ -12,14 +13,15 @@ const KINDS = [
 ] as const;
 
 export default function DocumentsPage() {
-  const { child } = useApp();
+  const { child, user, observations } = useApp();
+  const cfg = useAiConfig();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   if (!child) return null;
   const run = async (prompt: string) => {
     setText(""); setError(""); setBusy(true);
-    try { await streamAssistant(child.child_id, prompt.replace("{n}", child.name), (d) => setText((t) => t + d), false); }
+    try { await askAI({ cfg, user, child, obs: observations, history: [], message: prompt.replace("{n}", child.name), onDelta: (d) => setText((t) => t + d), save: false }); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const download = () => {
@@ -37,6 +39,7 @@ export default function DocumentsPage() {
             <span className="medal-xs"><FileText size={12} /></span><span className="flex-1 text-left text-sm">{label}</span><Sparkles size={14} className="text-gold" />
           </button>
         ))}
+        <Link to="/carte" className="piste-row" data-testid="doc-progress-card-link"><span className="medal-xs"><FileText size={12} /></span><span className="flex-1 text-left text-sm">Carte de progrès (famille)</span></Link>
         <div className="border-t border-border pt-3 text-xs text-muted-foreground">Niveaux actuels : {DOMAINS.map((d) => `${d.name.split(" ")[0]} ${child.levels[d.id]}/5`).join(" · ")}</div>
       </section>
       <section className="panel print-area flex min-h-[60vh] flex-col p-6" data-testid="document-output">

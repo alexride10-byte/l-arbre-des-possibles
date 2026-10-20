@@ -4,7 +4,8 @@ import { ChevronRight, Sparkles } from "lucide-react";
 import type { Domain } from "@/data/domains";
 import { DOMAINS } from "@/data/domains";
 import { FRAGILITIES } from "@/data/fragilities";
-import { QUESTS } from "@/data/quests";
+import { allQuests } from "@/lib/rpg";
+import { GenerateQuest } from "./GenerateQuest";
 import { useApp } from "@/context/AppContext";
 import { domainColor, frDate, isoFromFr } from "@/lib/icons";
 import { FactorMini } from "./FactorMini";
@@ -20,7 +21,7 @@ const List = ({ items }: { items: string[] }) => (
 export function DetailsTab({ domain }: { domain: Domain }) {
   const { child, openNode, openAssistant, setFactorId, node } = useApp();
   const navigate = useNavigate();
-  const quests = QUESTS.filter((q) => q.domainId === domain.id);
+  const quests = child ? allQuests(child).filter((q) => q.domainId === domain.id) : [];
   const pistes = [...quests.map((q) => ({ t: q.title, term: q.term })), ...domain.pistes.map((p, i) => ({ t: p, term: i ? "Moyen terme (1–3 mois)" : "Court terme (2–4 semaines)" }))].slice(0, 4);
   return (
     <>
@@ -37,7 +38,7 @@ export function DetailsTab({ domain }: { domain: Domain }) {
             <ChevronRight size={16} className="text-muted-foreground" />
           </button>
         ))}
-        <button className="btn-outline w-full" onClick={() => navigate("/interventions")} data-testid="see-all-interventions">Voir toutes les interventions ({QUESTS.length + DOMAINS.reduce((n, d) => n + d.pistes.length, 0)})</button>
+        <button className="btn-outline w-full" onClick={() => navigate("/interventions")} data-testid="see-all-interventions">Voir toutes les interventions ({(child ? allQuests(child).length : 0) + DOMAINS.reduce((n, d) => n + d.pistes.length, 0)})</button>
       </section>
       <div className="grid gap-4 sm:grid-cols-2">
         <section className="space-y-2"><H>Forces</H><List items={domain.strengths} /></section>
@@ -48,14 +49,16 @@ export function DetailsTab({ domain }: { domain: Domain }) {
 }
 
 export function ActionsTab({ domain }: { domain: Domain }) {
+  const { child } = useApp();
   const [sheet, setSheet] = useState(false);
-  const quests = QUESTS.filter((q) => q.domainId === domain.id);
+  const quests = child ? allQuests(child).filter((q) => q.domainId === domain.id) : [];
   if (sheet && domain.sheet) return <ExampleSheetView sheet={domain.sheet} onClose={() => setSheet(false)} />;
   return (
     <>
       <p className="text-xs text-muted-foreground">Chaque étape réalisée rapporte <b className="text-gold">+50 XP</b> au parcours d'accompagnement.</p>
       {quests.map((q) => <QuestCard key={q.id} quest={q} />)}
       {quests.length === 0 && <p className="text-sm text-muted-foreground">Aucune quête pour ce domaine.</p>}
+      <GenerateQuest domainId={domain.id} compact />
       {domain.sheet && <button onClick={() => setSheet(true)} className="btn-outline w-full" data-testid="open-example-sheet">Ouvrir la fiche d'exemple</button>}
     </>
   );

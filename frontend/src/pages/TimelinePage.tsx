@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { DOMAINS } from "@/data/domains";
 import { FRAGILITIES } from "@/data/fragilities";
-import { QUESTS } from "@/data/quests";
+import { allQuests } from "@/lib/rpg";
 import { domainColor, frDate, isoFromFr } from "@/lib/icons";
 
 interface Ev { date: string; domain: string; kind: string; text: string }
@@ -14,7 +14,7 @@ export default function TimelinePage() {
   const events: Ev[] = [
     ...observations.map((o) => ({ date: o.date, domain: o.domain_id, kind: "Observation", text: o.fact + (o.context ? ` — ${o.context}` : "") })),
     ...child.level_history.map((h) => ({ date: h.date, domain: h.domain_id, kind: "Niveau", text: `Niveau réévalué : ${h.from} → ${h.to}` })),
-    ...QUESTS.flatMap((q) => q.steps.map((s, i) => ({ q, s, st: child.quest_steps[`${q.id}:${i}`] })).filter((x) => x.st?.status === "fait")
+    ...allQuests(child).flatMap((q) => q.steps.map((s, i) => ({ q, s, st: child.quest_steps[`${q.id}:${i}`] })).filter((x) => x.st?.status === "fait")
       .map(({ q, s, st }) => ({ date: st!.date, domain: q.domainId, kind: "Étape réalisée", text: `${s.title} · ${q.title} (+50 XP)` }))),
     ...DOMAINS.flatMap((d) => d.observations.map((o) => ({ date: isoFromFr(o.date), domain: d.id, kind: "Exemple fictif", text: o.text }))),
     ...FRAGILITIES.flatMap((f) => f.observations.map((o) => ({ date: isoFromFr(o.date), domain: f.domains[0] ?? "emotionnel", kind: `Défi · ${f.label}`, text: o.text }))),
