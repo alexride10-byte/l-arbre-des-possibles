@@ -84,6 +84,7 @@ class MeIn(BaseModel):
 
 class AskIn(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
+    save: bool = True
 
 
 # ---------- Auth ----------
@@ -288,7 +289,9 @@ async def update_obs(child_id: str, obs_id: str, body: ObservationIn, request: R
 @api.delete("/children/{child_id}/observations/{obs_id}")
 async def delete_obs(child_id: str, obs_id: str, request: Request):
     await get_child(request, child_id)
-    await db.observations.delete_one({"obs_id": obs_id, "child_id": child_id})
+    res = await db.observations.delete_one({"obs_id": obs_id, "child_id": child_id})
+    if res.deleted_count:
+        await db.children.update_one({"child_id": child_id, "xp": {"$gte": XP_OBS}}, {"$inc": {"xp": -XP_OBS}})
     return {"ok": True}
 
 
@@ -330,10 +333,11 @@ async def assistant_clear(child_id: str, request: Request):
 async def assistant_ask(child_id: str, body: AskIn, request: Request):
     user, child = await get_child(request, child_id)
     obs = await db.observations.find({"child_id": child_id}, {"_id": 0}).sort("date", -1).to_list(30)
-    history = await db.ai_messages.find({"child_id": child_id}, {"_id": 0}).sort("created_at", -1).to_list(10)
+    history = await db.ai_messages.find({"child_id": child_id}, {"_id": 0}).sort("created_at", -1).to_list(10) if body.save else []
     transcript = "\n\n".join(f"{'Utilisateur' if m['role'] == 'user' else 'Assistant'} : {m['text']}" for m in reversed(history))
     prompt = (f"Historique récent de la conversation :\n{transcript}\n\nNouveau message : " if transcript else "") + body.message
-    await db.ai_messages.insert_one({"msg_id": uuid.uuid4().hex, "child_id": child_id, "role": "user", "text": body.message, "created_at": now_iso()})
+    if body.save:
+        await db.ai_messages.insert_one({"msg_id": uuid.uuid4().hex, "child_id": child_id, "role": "user", "text": body.message, "created_at": now_iso()})
     chat = LlmChat(api_key=LLM_KEY, session_id=f"{child_id}-{uuid.uuid4().hex[:6]}",
                    system_message=system_prompt(user, child, obs)).with_model("anthropic", "claude-sonnet-5-5")
 
@@ -349,7 +353,7 @@ async def assistant_ask(child_id: str, body: AskIn, request: Request):
         except Exception as e:  # surfaced to the UI
             yield f"data: {json.dumps({'error': str(e)[:200]})}\n\n"
         text = "".join(parts)
-        if text:
+        if text and body.save:
             await db.ai_messages.insert_one({"msg_id": uuid.uuid4().hex, "child_id": child_id, "role": "assistant", "text": text, "created_at": now_iso()})
         yield f"data: {json.dumps({'done': True})}\n\n"
 

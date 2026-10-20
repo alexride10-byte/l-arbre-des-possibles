@@ -8,8 +8,8 @@ export function SimulationZone() {
   if (!child) return null;
   const data = chartData(child.levels, doneSteps(child));
   return (
-    <section className="panel sim-zone flex min-h-0 flex-col p-4" data-testid="simulation-zone">
-      <h3 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold">Simulation de trajectoires possibles
+    <section className="panel sim-zone flex min-h-0 flex-col p-4 pt-3" data-testid="simulation-zone">
+      <h3 className="mb-2 flex items-center gap-2 font-display text-lg font-semibold">Simulation de trajectoires possibles
         <span title="Projection illustrative calculée à partir des niveaux actuels et des étapes réalisées. Ce n'est pas une prédiction."><HelpCircle size={15} className="text-muted-foreground" /></span>
       </h3>
       <div className="flex min-h-0 flex-1 gap-4">

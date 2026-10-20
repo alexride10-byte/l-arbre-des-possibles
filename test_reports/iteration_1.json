@@ -1,0 +1,47 @@
+{
+  "summary": "Full backend + frontend E2E test of Enfance+ with AUTH_ENABLED=false (demo-user mode) at 1920x1000. Backend: 11/11 pytest pass (demo-user /auth/me with auth_enabled:false, Léo seed, audience toggle, children CRUD+validation, levels, quest XP +50/-50, observations CRUD +10 XP, SSE assistant with claude-sonnet-5-5 streams French). Frontend: almost everything requested works. App opens straight on the dashboard (no login), settings popover shows 'Connexion Google désactivée' with no logout button. Domain filters dim branches (opacity 0.08). Domain/node zoom + detail panel + back work, level +/- persists across reload, all 4 tabs work, factor panel works, quest steps cycle à venir→en cours→fait (+50 XP) →à venir (-50). Observations add/edit/delete persist. Simulation/Comparaison modes show overlay and change tree labels, horizon slider works, 4 scenarios give distinct future outcomes. Global search opens fragility/domain/node. Profile edit/avatar/create/switch/delete work. /competences stars persist (visible in timeline), /chronologie filters, /interventions, /ressources, /arbre and /documents (streams a family note, download enabled) all work. One real bug: the assistant drawer drops or garbles prompt-launched messages when chat history already exists.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/children/{id}/observations/{obs_id}", "issue": "Deleting an observation does not remove the +10 XP it gave, so XP can be farmed by adding and deleting (confirmed: Léo went 120→130 XP and stayed there after delete)."},
+      {"endpoint": "POST /api/children/{id}/assistant (used by /documents)", "issue": "Documents are generated through the chat endpoint, so each document request and answer is saved in the assistant chat history and also included in later prompts. Documents pollute the assistant drawer."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AssistantDrawer (prompt-launched open)", "issue": "Race condition. When the drawer is opened with a prompt (explore-scenario-button, piste-row, domain-ai-synthesis, AI priorities) and chat history already exists, the history GET in useEffect([assistant.open]) resolves after ask() has added the optimistic messages and overwrites them with setMsgs(history). The new user bubble disappears and the streamed answer is appended to the PREVIOUS assistant bubble (seen: 'Bonjour !# Scénario actuel pour Léo...'). Server-side history is correct and reopening the drawer shows the right content. Fix: wait for the history load before calling ask(prompt) (chain them), or merge the history instead of replacing.", "selector": "[data-testid=explore-scenario-button]", "priority": "HIGH"},
+      {"component": "LifeTree domain medallion", "issue": "The subnode connector paths in g.subnodes-overview start exactly at the medallion center (e.g. M515,195) and catch pointer events, so a click dead-center on a medallion doesn't open the domain. Off-center clicks work. Add pointer-events:none to those connector paths.", "selector": "[data-testid=tree-domain-*]", "priority": "MEDIUM"},
+      {"component": "AvatarCustomizer modal", "issue": "Doesn't close on Escape (only the X button, the validate button or a backdrop click). Tester added the missing data-testids.", "selector": "[data-testid=avatar-modal]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard 1920x1000", "issues": ["Simulation zone clips the 4th scenario button 'Scénario à risque' (button bottom 1003px vs zone bottom 988px, and the page can't scroll)", "Left sidebar 'Affichage' section is cut off at the bottom", "In Simulation mode the overlay popover covers the Cognitif subnode labels ('Mémoire visuelle', 'Attention soutenue')"]},
+      {"screen": "Observations (Ressources tab)", "issues": ["Date formats are inconsistent: example observations show dd/mm/yyyy while user observations show ISO yyyy-mm-dd"]},
+      {"screen": "Profil > Nouveau profil", "issues": ["The age number input has no label or placeholder (only shows '6')"]},
+      {"screen": "Mobile 390px", "issues": ["No horizontal overflow, but tree node labels are cut at the left/right edges and the logo tagline wraps onto 2 lines"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_enfance_auth_disabled.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Fix AssistantDrawer race: load history first, then run assistant.prompt (or skip the history overwrite while a prompt is pending)",
+    "Add pointer-events:none to the subnode connector paths so dead-center medallion clicks open the domain",
+    "Remove the +10 XP when an observation is deleted",
+    "Consider a separate document endpoint (or a flag) so documents are not saved into the chat history",
+    "Fix the clipped 'Scénario à risque' button in the simulation zone at a 1000px viewport height",
+    "Add Escape-to-close to AvatarCustomizer; add a label/placeholder to the new-profile age input; use one date format for observations"
+  ],
+  "critical_code_review_comments": [
+    "No error handling in AppContext.setLevel/setStep, ProfilePage save/create/remove or ObservationsEditor submit/delete: a failed fetch is an unhandled rejection with no user feedback (no toast or error state)",
+    "ObservationsEditor delete calls reloadObs but not reloadProfiles (harmless today only because delete doesn't change XP)",
+    "The existing test_enfance_api.py assumes AUTH_ENABLED=true (expects a 401 without a token, uses Bearer test_session_1); it will fail in demo mode. Use test_enfance_auth_disabled.py while auth is off.",
+    "Assistant: the user message is saved before streaming; if the LLM errors, the orphan user message stays in history while the UI removes only the assistant placeholder"
+  ],
+  "updated_files": ["/app/frontend/src/components/layout/AvatarCustomizer.tsx (added data-testids only: avatar-modal, avatar-close-button, avatar-{face|hair|accessory}-{i}, avatar-validate-button)", "/app/backend/tests/test_enfance_auth_disabled.py (new)"],
+  "success_rate": {"backend": "100% (11/11)", "frontend": "~92% (1 high-priority drawer race, 1 medium click hit-area issue; all other requested flows pass)"},
+  "test_credentials": "None needed (AUTH_ENABLED=false). /app/memory/test_credentials.md describes the auth-on mode (test_session_1).",
+  "seed_data_creation": "None kept. TEST_ children, the observation and assistant history were cleaned up. Léo profile restored (grade CE2, default avatar, levels unchanged). Léo XP is now 130 (was 120) because of the observation XP bug.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Desktop 1920x1000. Clicking tree medallions with Playwright locator.click() is blocked by the subnode connector paths: use page.mouse.click at the [data-domain-target=<id>] circle center offset by (+12,-12), or fix the paths first. Domain filter hides branches via opacity 0.08 (still 'visible' to Playwright). The assistant send button is disabled while streaming, so poll it to detect completion. Repro for the drawer bug: send a message in the drawer, close it, click explore-scenario-button: the new user bubble is missing and the answer is appended to the old AI bubble.",
+  "rca of the issue": "AssistantDrawer.tsx: useEffect([assistant.open, child_id]) runs api(GET history).then(setMsgs) and useEffect([assistant.nonce]) runs ask(prompt) in the same commit. ask() adds [user, assistant:''] optimistically, then the GET resolves and replaces msgs with the server history. The streaming callback then appends deltas to m[m.length-1], which is now the last history message. Mitigation: in a single effect, await the history load, then call ask(prompt); or keep a 'pending' ref and append the history before the optimistic messages."
+}

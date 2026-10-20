@@ -6,7 +6,7 @@ import { DOMAINS } from "@/data/domains";
 import { FRAGILITIES } from "@/data/fragilities";
 import { QUESTS } from "@/data/quests";
 import { useApp } from "@/context/AppContext";
-import { domainColor, frDate } from "@/lib/icons";
+import { domainColor, frDate, isoFromFr } from "@/lib/icons";
 import { FactorMini } from "./FactorMini";
 import { QuestCard } from "./QuestSteps";
 import { ObservationsEditor } from "./ObservationsEditor";
@@ -89,7 +89,7 @@ export function ResourcesTab({ domain }: { domain: Domain }) {
     <>
       {domain.resources.length > 0 && <section className="space-y-2"><H>Ressources et références</H><List items={domain.resources} /></section>}
       <section className="space-y-2"><H>Observations d'exemple</H>
-        {domain.observations.map((o) => <p key={o.text} className="border-l border-gold/50 pl-3 text-sm"><span className="text-xs text-muted-foreground">{o.date}</span><br />{o.text}</p>)}
+        {domain.observations.map((o) => <p key={o.text} className="border-l border-gold/50 pl-3 text-sm"><span className="text-xs text-muted-foreground">{frDate(isoFromFr(o.date))}</span><br />{o.text}</p>)}
       </section>
       <ObservationsEditor domainId={domain.id} />
       <button className="btn-ai w-full justify-center" onClick={() => openAssistant(`Fais une synthèse du domaine « ${domain.name} » pour ${child?.name} à partir des observations.`)} data-testid="domain-ai-synthesis"><Sparkles size={15} /> Synthèse IA du domaine</button>

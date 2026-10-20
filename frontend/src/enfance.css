@@ -115,7 +115,7 @@ body { -webkit-font-smoothing: antialiased; }
 .badge { display: flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.6rem; border-radius: 9px; font-size: 0.75rem; color: var(--muted-foreground); border: 1px dashed var(--border); opacity: 0.6; }
 .badge-on { opacity: 1; color: #fde68a; border: 1px solid rgba(251, 191, 36, 0.45); background: rgba(251, 191, 36, 0.08); box-shadow: 0 0 14px -8px #fbbf24; }
 
-.scenario-btn { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem; border-radius: 9px; font-size: 0.8rem; border: 1px solid var(--border); transition: border-color 0.2s, background-color 0.2s; }
+.scenario-btn { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.7rem; border-radius: 9px; font-size: 0.8rem; border: 1px solid var(--border); transition: border-color 0.2s, background-color 0.2s; }
 .scenario-btn:hover { background: rgba(255, 255, 255, 0.04); }
 .scenario-on { border-color: rgba(59, 130, 246, 0.8); background: rgba(59, 130, 246, 0.14); box-shadow: var(--blue-glow); }
 

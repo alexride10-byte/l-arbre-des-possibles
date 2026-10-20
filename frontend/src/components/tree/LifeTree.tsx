@@ -239,8 +239,8 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
                     <g key={n.id} style={{ transition: "opacity .5s, transform .6s", transitionDelay: shown ? `${250 + k * 140}ms` : "0ms", opacity: shown ? 1 : 0, transform: shown ? "none" : `translate(${(g.end.x - p.x) * 0.6}px, ${(g.end.y - p.y) * 0.6}px)` }} role="button" tabIndex={shown ? 0 : -1} aria-label={n.label} className="subnode" data-testid={`tree-node-${n.id}`}
                       onClick={(e) => { e.stopPropagation(); onNode(n.id); }}
                       onKeyDown={(e) => { if (e.key === "Enter") onNode(n.id); }}>
-                      <path d={link} stroke={active ? `url(#wood-${d.id})` : domainColor(d.id)} strokeWidth={active ? 2.4 : 1} opacity={active ? 1 : 0.55} fill="none" strokeLinecap="round" />
-                      <path d={link} stroke={glow(d.hue, 0.85, 0.15)} strokeWidth="0.5" fill="none" className="sap" />
+                      <path d={link} stroke={active ? `url(#wood-${d.id})` : domainColor(d.id)} strokeWidth={active ? 2.4 : 1} opacity={active ? 1 : 0.55} fill="none" strokeLinecap="round" pointerEvents="none" />
+                      <path d={link} stroke={glow(d.hue, 0.85, 0.15)} strokeWidth="0.5" fill="none" className="sap" pointerEvents="none" />
                       <circle cx={p.x} cy={p.y} r="14" fill="transparent" />
                       <circle cx={p.x} cy={p.y} r={sel ? 5.5 : 4} className={`kind-${n.kind}`} strokeWidth={sel ? 1.2 : 0.6} filter="url(#halo)" />
                       <rect x={rx} y={ry} width={w} height={h} rx={active ? 5 : 8.5}

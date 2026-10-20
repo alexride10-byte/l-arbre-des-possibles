@@ -5,7 +5,7 @@ import { HORIZONS, SCENARIOS } from "@/lib/rpg";
 export function ModeOverlay() {
   const { mode, setMode, scenario, setScenario, horizon, setHorizon } = useApp();
   return (
-    <div className="popover absolute left-4 top-2 z-20 w-72 space-y-3 p-4" data-testid="mode-overlay">
+    <div className="popover absolute bottom-3 right-3 z-20 w-72 space-y-3 p-4" data-testid="mode-overlay">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold">{mode === "simulation" ? "Simulation future" : "Comparaison"}</p>
         <button className="icon-btn h-7 w-7" onClick={() => setMode("actuelle")} aria-label="Fermer" data-testid="mode-overlay-close"><X size={14} /></button>

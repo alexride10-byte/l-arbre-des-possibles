@@ -19,7 +19,7 @@ export default function DocumentsPage() {
   if (!child) return null;
   const run = async (prompt: string) => {
     setText(""); setError(""); setBusy(true);
-    try { await streamAssistant(child.child_id, prompt.replace("{n}", child.name), (d) => setText((t) => t + d)); }
+    try { await streamAssistant(child.child_id, prompt.replace("{n}", child.name), (d) => setText((t) => t + d), false); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const download = () => {

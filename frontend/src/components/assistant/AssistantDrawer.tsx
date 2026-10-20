@@ -15,8 +15,12 @@ export function AssistantDrawer() {
   const domain = DOMAINS.find((d) => d.id === focus);
 
   useEffect(() => {
-    if (assistant.open && child) api<AiMessage[]>(`/children/${child.child_id}/assistant`).then(setMsgs);
-  }, [assistant.open, child?.child_id]);
+    if (!assistant.open || !child) return;
+    api<AiMessage[]>(`/children/${child.child_id}/assistant`).then((h) => {
+      setMsgs(h);
+      if (assistant.prompt) ask(assistant.prompt);
+    });
+  }, [assistant.open, assistant.nonce, child?.child_id]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
   const ask = async (text: string) => {
@@ -30,7 +34,6 @@ export function AssistantDrawer() {
     } finally { setBusy(false); }
   };
 
-  useEffect(() => { if (assistant.open && assistant.prompt) ask(assistant.prompt); }, [assistant.nonce]);
 
   if (!assistant.open || !child) return null;
   const quick = [

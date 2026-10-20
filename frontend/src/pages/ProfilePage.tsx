@@ -63,7 +63,7 @@ export default function ProfilePage() {
           <p className="text-sm font-semibold">Nouveau profil</p>
           <input className="field" placeholder="Prénom" value={newKid.name} onChange={(e) => setNewKid({ ...newKid, name: e.target.value })} data-testid="new-profile-name-input" />
           <div className="grid grid-cols-2 gap-2">
-            <input type="number" min={0} max={21} className="field" value={newKid.age} onChange={(e) => setNewKid({ ...newKid, age: Number(e.target.value) })} data-testid="new-profile-age-input" />
+            <input type="number" min={0} max={21} className="field" aria-label="Âge" placeholder="Âge" title="Âge" value={newKid.age} onChange={(e) => setNewKid({ ...newKid, age: Number(e.target.value) })} data-testid="new-profile-age-input" />
             <input className="field" placeholder="Classe" value={newKid.grade} onChange={(e) => setNewKid({ ...newKid, grade: e.target.value })} data-testid="new-profile-grade-input" />
           </div>
           <button className="btn-outline w-full" type="submit" data-testid="new-profile-submit"><Plus size={15} /> Ajouter le profil</button>

@@ -28,11 +28,11 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const send = <T,>(path: string, method: string, body?: unknown) =>
   api<T>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) });
 
-export async function streamAssistant(childId: string, message: string, onDelta: (t: string) => void) {
+export async function streamAssistant(childId: string, message: string, onDelta: (t: string) => void, save = true) {
   const res = await fetch(`${API}/children/${childId}/assistant`, {
     method: "POST", credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, save }),
   });
   if (!res.ok || !res.body) throw new Error(`Erreur ${res.status}`);
   const reader = res.body.getReader();
