@@ -10,7 +10,7 @@ const NEXT: Record<StepStatus, StepStatus> = { "à venir": "en cours", "en cours
 const ICON = { fait: Check, "en cours": Loader, "à venir": Circle };
 
 export function QuestCard({ quest, detailed = false }: { quest: Quest; detailed?: boolean }) {
-  const { child, setStep, saveChild } = useApp();
+  const { child, setStep, saveChild, user } = useApp();
   if (!child) return null;
   const statuses = quest.steps.map((s, i) => stepStatus(child, quest.id, i, s.status));
   const done = statuses.filter((s) => s === "fait").length;
@@ -21,7 +21,7 @@ export function QuestCard({ quest, detailed = false }: { quest: Quest; detailed?
         <div className="flex shrink-0 items-center gap-1.5">
           {quest.custom && <span className="pill-ai" title="Quête créée par l'IA"><Sparkles size={10} /> IA</span>}
           <span className="pill-muted" data-testid={`quest-progress-${quest.id}`}>{done}/{quest.steps.length}</span>
-          {quest.custom && <button className="icon-btn h-7 w-7" aria-label="Supprimer la quête" data-testid={`quest-delete-${quest.id}`}
+          {quest.custom && child.user_id === user.user_id && <button className="icon-btn h-7 w-7" aria-label="Supprimer la quête" data-testid={`quest-delete-${quest.id}`}
             onClick={async () => { if (window.confirm("Supprimer cette quête ?")) saveChild(await send<Child>(`/children/${child.child_id}/quests/${quest.id}`, "DELETE")); }}><Trash2 size={13} /></button>}
         </div>
       </div>
@@ -30,7 +30,7 @@ export function QuestCard({ quest, detailed = false }: { quest: Quest; detailed?
         {quest.steps.map((s, i) => {
           const st = statuses[i]!; const I = ICON[st];
           return (
-            <li key={s.title}>
+            <li key={i}>
               <button onClick={() => setStep(quest.id, i, NEXT[st])} className={`step-row step-${st.replace(/\s|à/g, "")}`} title="Cliquer pour changer le statut" data-testid={`quest-step-${quest.id}-${i}`}>
                 <I size={14} className="shrink-0" />
                 <span className="min-w-0 flex-1 text-left"><span className="block text-sm">{s.title}</span>{detailed && <span className="block text-[11px] text-muted-foreground">{s.action} · Indicateur : {s.indicator}</span>}</span>

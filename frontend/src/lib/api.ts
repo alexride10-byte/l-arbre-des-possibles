@@ -30,7 +30,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Erreur ${res.status}`);
+    const d = body.detail;
+    throw new Error(Array.isArray(d) ? (d.some((x: { loc?: string[] }) => x.loc?.includes("email")) ? "Adresse e-mail invalide" : "Données invalides") : d ?? `Erreur ${res.status}`);
   }
   return res.json();
 }

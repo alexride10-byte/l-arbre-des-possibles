@@ -22,9 +22,9 @@ export default function ProgressCardPage() {
         <button className="btn-primary" onClick={() => window.print()} data-testid="progress-card-print"><Printer size={15} /> Imprimer / PDF</button>
       </div>
       <article className="progress-card print-card mx-auto max-w-3xl space-y-6 p-8" data-testid="progress-card">
-        <header className="flex flex-wrap items-center gap-6">
+        <header className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
           <div className="h-36 w-32 overflow-hidden rounded-2xl border-2 border-amber-300/60 bg-[radial-gradient(ellipse_at_50%_30%,#3b6fb0,#141c3a_75%)]"><AvatarIllustration options={child.avatar} className="h-full w-full" /></div>
-          <div className="min-w-0 flex-1 space-y-1">
+          <div className="min-w-0 w-full flex-1 space-y-1">
             <p className="text-xs uppercase tracking-[0.25em] text-amber-200/80">Enfance+ · Carte de progrès</p>
             <h2 className="font-display text-4xl font-bold" data-testid="progress-card-name">Bravo {child.name} !</h2>
             <p className="text-sm text-slate-300">Ton arbre grandit : chaque petit pas compte. Voici tout ce que tu as déjà accompli.</p>

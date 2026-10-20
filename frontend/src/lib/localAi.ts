@@ -43,7 +43,8 @@ export async function listLocalModels(cfg: AiConfig): Promise<string[]> {
 }
 
 async function streamLocal(cfg: AiConfig, messages: Msg[], onDelta: (t: string) => void) {
-  const res = await fetch(`${cfg.url}/api/chat`, { method: "POST", body: JSON.stringify({ model: cfg.model, messages, stream: true }) });
+  const res = await fetch(`${cfg.url}/api/chat`, { method: "POST", body: JSON.stringify({ model: cfg.model, messages, stream: true }) })
+    .catch(() => { throw new Error(`IA locale injoignable à ${cfg.url}. Lancez Ollama avec OLLAMA_ORIGINS="*" ollama serve, puis vérifiez le modèle « ${cfg.model} ».`); });
   if (!res.ok || !res.body) throw new Error(`IA locale injoignable (${res.status})`);
   const reader = res.body.getReader();
   const dec = new TextDecoder();

@@ -15,7 +15,13 @@ Application psychologique sur le développement de l'enfant, style RPG (maquette
 - Pages : Profil (multi-profils, avatar), Compétences (radar), Chronologie, Interventions, Ressources (+ numéros utiles), Documents (synthèse/note famille/compte rendu IA, impression, téléchargement).
 - Assistant IA en tiroir avec historique par enfant.
 
+## Itération 2 (2026-10-20)
+- Fix boucle de connexion Google : CORS (regex domaines Emergent) + jeton Bearer de secours (localStorage)
+- IA locale (Ollama, appel direct navigateur -> localhost:11434, historique local) / Cloud (Claude) au choix dans Réglages
+- Partage parent-pro par e-mail (rôle), accès collaboratif, actions destructives réservées au propriétaire, auteur des observations
+- Quêtes générées par l'IA (cloud ou locale) sauvegardées dans child.custom_quests, suppression avec retrait de l'XP
+- Carte de progrès imprimable (/carte)
+
 ## Backlog
-- P1: IA locale (Ollama) via interface interchangeable ; export PDF mis en forme
-- P1: Partage d'un profil entre parent et professionnel
-- P2: quêtes personnalisées créées/sauvegardées depuis l'IA ; mobile plus soigné
+- P1: notifications/invitations par e-mail pour le partage ; export PDF mis en forme
+- P2: synchronisation des profils en mode 100% local ; mobile plus soigné

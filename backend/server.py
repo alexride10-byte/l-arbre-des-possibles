@@ -406,8 +406,8 @@ async def generate_quest(child_id: str, body: QuestGenIn, request: Request):
               + (f" avec cet objectif : {body.goal}" if body.goal else "")
               + '. Réponds UNIQUEMENT avec un JSON valide, sans texte autour : {"title": "...", "term": "Court terme (2–4 semaines)" | "Moyen terme (1–3 mois)" | "Long terme (3–6 mois)", '
               '"steps": [{"title": "1 à 3 mots", "objective": "...", "action": "...", "resource": "...", "indicator": "..."}]} avec 3 ou 4 étapes concrètes et bienveillantes.')
-    raw = await chat.send_message(UserMessage(text=prompt))
     try:
+        raw = await chat.send_message(UserMessage(text=prompt))
         data = json.loads(raw[raw.index("{"): raw.rindex("}") + 1])
         quest = QuestIn(**{**data, "domainId": body.domain_id})
     except Exception:
@@ -418,8 +418,13 @@ async def generate_quest(child_id: str, body: QuestGenIn, request: Request):
 
 @api.delete("/children/{child_id}/quests/{quest_id}")
 async def delete_quest(child_id: str, quest_id: str, request: Request):
-    await get_child(request, child_id)
-    await db.children.update_one({"child_id": child_id}, {"$pull": {"custom_quests": {"id": quest_id}}})
+    _, child = await get_owned_child(request, child_id)
+    keys = [k for k in child.get("quest_steps", {}) if k.startswith(f"{quest_id}:")]
+    done = sum(1 for k in keys if child["quest_steps"][k].get("status") == "fait")
+    update = {"$pull": {"custom_quests": {"id": quest_id}}, "$inc": {"xp": -min(done * XP_STEP, child["xp"])}}
+    if keys:
+        update["$unset"] = {f"quest_steps.{k}": "" for k in keys}
+    await db.children.update_one({"child_id": child_id}, update)
     return (await get_child(request, child_id))[1]
 
 
@@ -431,7 +436,7 @@ async def assistant_history(child_id: str, request: Request):
 
 @api.delete("/children/{child_id}/assistant")
 async def assistant_clear(child_id: str, request: Request):
-    await get_child(request, child_id)
+    await get_owned_child(request, child_id)
     await db.ai_messages.delete_many({"child_id": child_id})
     return {"ok": True}
 
@@ -443,8 +448,6 @@ async def assistant_ask(child_id: str, body: AskIn, request: Request):
     history = await db.ai_messages.find({"child_id": child_id}, {"_id": 0}).sort("created_at", -1).to_list(10) if body.save else []
     transcript = "\n\n".join(f"{'Utilisateur' if m['role'] == 'user' else 'Assistant'} : {m['text']}" for m in reversed(history))
     prompt = (f"Historique récent de la conversation :\n{transcript}\n\nNouveau message : " if transcript else "") + body.message
-    if body.save:
-        await db.ai_messages.insert_one({"msg_id": uuid.uuid4().hex, "child_id": child_id, "role": "user", "text": body.message, "created_at": now_iso()})
     chat = LlmChat(api_key=LLM_KEY, session_id=f"{child_id}-{uuid.uuid4().hex[:6]}",
                    system_message=system_prompt(user, child, obs)).with_model("anthropic", "claude-sonnet-5-5")
 
@@ -461,7 +464,9 @@ async def assistant_ask(child_id: str, body: AskIn, request: Request):
             yield f"data: {json.dumps({'error': str(e)[:200]})}\n\n"
         text = "".join(parts)
         if text and body.save:
-            await db.ai_messages.insert_one({"msg_id": uuid.uuid4().hex, "child_id": child_id, "role": "assistant", "text": text, "created_at": now_iso()})
+            await db.ai_messages.insert_many([
+                {"msg_id": uuid.uuid4().hex, "child_id": child_id, "role": "user", "text": body.message, "created_at": now_iso()},
+                {"msg_id": uuid.uuid4().hex, "child_id": child_id, "role": "assistant", "text": text, "created_at": now_iso()}])
         yield f"data: {json.dumps({'done': True})}\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream",
@@ -474,13 +479,6 @@ async def root():
 
 
 app.include_router(api)
-
-
-@app.middleware("http")
-async def log_preflight_origin(request: Request, call_next):
-    if request.method == "OPTIONS":
-        print("PREFLIGHT ORIGIN:", request.headers.get("origin"), flush=True)
-    return await call_next(request)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

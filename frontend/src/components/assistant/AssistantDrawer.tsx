@@ -29,7 +29,7 @@ export function AssistantDrawer() {
       } });
       if (local) localHistory.set(child.child_id, [...history, { role: "user", text }, { role: "assistant", text: answer }]);
     } catch (e) {
-      setError((e as Error).message); setMsgs(history);
+      setError((e as Error).message); setMsgs(history); setInput(text);
     } finally { setBusy(false); }
   };
 
@@ -61,7 +61,7 @@ export function AssistantDrawer() {
               {local ? <><HardDrive size={11} /> IA locale · {cfg.model} · rien ne quitte l'ordinateur</> : <><Cloud size={11} /> Claude (cloud) · {child.name}</>}
             </p>
           </div>
-          <button className="icon-btn h-8 w-8" onClick={clear} aria-label="Effacer" data-testid="assistant-clear-button"><Trash2 size={15} /></button>
+          {(local || child.user_id === user.user_id) && <button className="icon-btn h-8 w-8" onClick={clear} aria-label="Effacer" data-testid="assistant-clear-button"><Trash2 size={15} /></button>}
           <button className="icon-btn h-8 w-8" onClick={closeAssistant} aria-label="Fermer" data-testid="assistant-close-button"><X size={16} /></button>
         </header>
         <div className="flex-1 space-y-4 overflow-y-auto p-4" data-testid="assistant-messages">
