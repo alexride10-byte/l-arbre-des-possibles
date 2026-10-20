@@ -1,6 +1,6 @@
 export const API = `${import.meta.env.REACT_APP_BACKEND_URL}/api`;
 
-export interface User { user_id: string; email: string; name: string; picture?: string; audience: "pro" | "parent" }
+export interface User { user_id: string; email: string; name: string; picture?: string; audience: "pro" | "parent"; auth_enabled?: boolean }
 export interface Avatar { face: number; hair: number; accessory: number }
 export type StepStatus = "fait" | "en cours" | "à venir";
 export interface Child {

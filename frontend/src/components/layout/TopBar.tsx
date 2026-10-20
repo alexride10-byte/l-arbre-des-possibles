@@ -80,7 +80,9 @@ function SettingsMenu() {
                 {a === "pro" ? "Professionnel" : "Parent"}</button>
             ))}
           </div>
-          <button onClick={logout} className="menu-item text-red-300" data-testid="logout-button"><span className="flex items-center gap-2"><LogOut size={14} /> Se déconnecter</span></button>
+          {user.auth_enabled === false
+            ? <p className="text-[11px] text-muted-foreground" data-testid="auth-disabled-note">Connexion Google désactivée (mode démo).</p>
+            : <button onClick={logout} className="menu-item text-red-300" data-testid="logout-button"><span className="flex items-center gap-2"><LogOut size={14} /> Se déconnecter</span></button>}
         </div>
       )}
     </div>

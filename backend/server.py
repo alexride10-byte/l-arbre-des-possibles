@@ -87,7 +87,17 @@ class AskIn(BaseModel):
 
 
 # ---------- Auth ----------
+AUTH_ENABLED = os.environ["AUTH_ENABLED"].lower() == "true"
+DEMO_USER = {"user_id": "demo-user", "email": "demo@enfanceplus.local", "name": "Mode démo", "picture": None, "audience": "pro"}
+
+
 async def current_user(request: Request) -> dict:
+    if not AUTH_ENABLED:
+        user = await db.users.find_one({"user_id": DEMO_USER["user_id"]}, {"_id": 0})
+        if not user:
+            await db.users.insert_one({**DEMO_USER, "created_at": now_iso()})
+            user = await db.users.find_one({"user_id": DEMO_USER["user_id"]}, {"_id": 0})
+        return {**user, "auth_enabled": False}
     token = request.cookies.get("session_token")
     if not token:
         auth = request.headers.get("Authorization", "")
