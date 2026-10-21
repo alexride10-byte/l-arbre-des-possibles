@@ -43,3 +43,9 @@ Application psychologique sur le développement de l'enfant, style RPG (maquette
 - P1: vrai envoi d'e-mails (Resend), anonymisation renforcée des données de démo, avatars servis avec authentification
 - P1: notifications/invitations par e-mail pour le partage ; export PDF mis en forme ; intégration institutionnelle SOS Villages d'Enfants
 - P2: synchronisation des profils en mode 100% local ; mobile plus soigné
+
+
+## 2026-06 — Installation & déploiement externe
+- PWA : manifest.webmanifest, sw.js (cache hors /api, actif en prod), icônes 192/512/apple, bouton Installer (data-testid install-app-button) dans TopBar avec aide iOS/Android/PC.
+- Déploiement externe : /app/DEPLOIEMENT.md (Atlas + Render + Vercel), /app/render.yaml, /app/frontend/vercel.json, /app/backend/requirements.txt (pip freeze + extra-index emergentintegrations).
+- Backlog P1 : Calendrier, Ressources, Rapports, Notifications ; vraie appli store (projet Expo séparé) si besoin.

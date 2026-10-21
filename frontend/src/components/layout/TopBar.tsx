@@ -9,6 +9,7 @@ import { DOMAINS } from "@/data/domains";
 import { FRAGILITIES } from "@/data/fragilities";
 import { allQuests, stepStatus } from "@/lib/rpg";
 import { AiSettings } from "@/components/assistant/AiSettings";
+import { InstallButton } from "./InstallButton";
 
 const NAV = [
   ["/", "Vue d'ensemble", Compass], ["/enfants", "Enfants", User], ["/interventions", "Activités", Workflow],
@@ -122,6 +123,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
         {user.role !== "internal" && <button className="btn-ai" onClick={() => openAssistant()} data-testid="open-assistant-button"><Sparkles size={16} /><span className="hidden sm:inline">Assistant IA</span></button>}
         <NavLink to="/messages" className={({ isActive }) => `icon-btn ${isActive ? "text-foreground" : ""}`} aria-label="Messages" data-testid="topnav-messages"><MessagesSquare size={19} />{unread > 0 && <span className="unread-badge" data-testid="messages-unread-badge">{unread}</span>}</NavLink>
         {user.role !== "internal" && <Notifications />}
+        <InstallButton />
         <SettingsMenu />
         {user.picture ? <img src={user.picture} alt={user.name} className="h-9 w-9 rounded-full border border-border" data-testid="user-avatar" />
           : <span className="grid h-9 w-9 place-items-center rounded-full bg-muted text-sm" data-testid="user-avatar">{user.name[0]}</span>}
