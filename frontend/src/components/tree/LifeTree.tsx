@@ -6,6 +6,7 @@ import { Heart, Users, Brain, BookOpen, Activity, Sprout, House, AlertTriangle, 
 import { FactorNetwork } from "./FactorNetwork";
 import { AvatarIllustration, type AvatarOptions } from "@/components/layout/AvatarIllustration";
 import { portraitSrc } from "@/components/layout/Portrait";
+import { PAINTED_TREE } from "@/lib/assets";
 import { FRAGILITIES } from "@/data/fragilities";
 
 const FRAG_POS = [{ x: 230, y: 624 }, { x: 340, y: 658 }, { x: 450, y: 634 }, { x: 560, y: 658 }, { x: 670, y: 634 }, { x: 780, y: 658 }];
@@ -30,9 +31,10 @@ interface Props {
   selectedFactor?: string | null;
   levelLabels?: Record<string, string>;
   showAllNodes?: boolean;
+  painted?: boolean;
 }
 
-export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBack, hidden = [], fragilityId = null, onFragility, onFactor, selectedFactor, levelLabels = {}, showAllNodes = false }: Props) {
+export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBack, hidden = [], fragilityId = null, onFragility, onFactor, selectedFactor, levelLabels = {}, showAllNodes = false, painted = true }: Props) {
   const mobile = useIsMobile();
   const svgRef = useRef<SVGSVGElement>(null);
   const [height, setHeight] = useState(830);
@@ -79,6 +81,9 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
       onClick={(e) => { if (e.target === e.currentTarget && focusId) onBack(); }}
     >
       <defs>
+        <linearGradient id="painted-fade" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stopColor="#fff" stopOpacity="0" /><stop offset=".12" stopColor="#fff" /><stop offset=".88" stopColor="#fff" /><stop offset="1" stopColor="#fff" stopOpacity="0" /></linearGradient>
+        <mask id="painted-mask"><rect x="-150" y="-40" width="1300" height="872" fill="url(#painted-fade)" /></mask>
+        <radialGradient id="painted-vignette" cx="50%" cy="45%" r="70%"><stop offset="55%" stopColor="#060a1a" stopOpacity="0" /><stop offset="100%" stopColor="#060a1a" stopOpacity=".85" /></radialGradient>
         <radialGradient id="aura" cx="50%" cy="45%" r="50%">
           <stop offset="0%" stopColor="var(--tree-aura)" stopOpacity="0.4" />
           <stop offset="60%" stopColor="var(--tree-aura)" stopOpacity="0.08" />
@@ -122,6 +127,11 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
       ))}
 
       <g className="camera" style={{ transform }}>
+        {painted && <g pointerEvents="none" data-testid="tree-painted-bg">
+          <image href={PAINTED_TREE} x="-150" y="-40" width="1300" height="872" preserveAspectRatio="xMidYMid slice" mask="url(#painted-mask)" />
+          <rect x="-150" y="-40" width="1300" height="872" fill="url(#painted-vignette)" />
+        </g>}
+        {!painted && <>
         <g className="forest-depth" pointerEvents="none" opacity=".24">
           {[70, 170, 860, 960].map((x, i) => <g key={x} transform={`translate(${x},0)`}><path d={`M0 695 Q${i % 2 ? -28 : 28} 420 4 115 M0 430 Q-60 315 -100 285 M5 370 Q70 225 115 190 M0 540 Q-75 410 -140 415`} fill="none" stroke="var(--bark-mid)" strokeWidth="18" /><path d="M0 450 Q-100 315 -155 305 M0 360 Q60 180 130 170" fill="none" stroke="var(--bark-light)" strokeWidth="3" /></g>)}
         </g>
@@ -187,6 +197,7 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
         ))}
         <path d={trunk.spine} stroke="var(--gold)" strokeWidth="20" fill="none" opacity="0.23" filter="url(#soft)" pointerEvents="none" />
         <path d={trunk.spine} stroke="var(--gold)" strokeWidth="1.4" fill="none" className="sap" filter="url(#halo)" />
+        </>}
         <ellipse cx="500" cy="470" rx="100" ry="150" fill="url(#heart)" className="core" pointerEvents="none" />
 
         {DOMAINS.map((d: Domain, i) => {
@@ -254,7 +265,7 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
             </g>
           );
         })}
-        {avatar.portrait ? (
+        {painted ? null : avatar.portrait ? (
           <g pointerEvents="none" opacity={focusId || frag ? .3 : 1} data-testid="tree-portrait">
             <defs><clipPath id="portrait-clip"><circle cx="500" cy="506" r="56" /></clipPath></defs>
             <circle cx="500" cy="506" r="63" fill="none" stroke="var(--gold)" strokeWidth="1.2" opacity=".5" filter="url(#halo)" />

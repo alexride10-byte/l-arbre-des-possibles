@@ -25,3 +25,4 @@ export const DOMAIN_ART: Record<string, { img: string; quote: string }> = {
   autonomie: { img: u("6305aed2b32951791617210041ae6375a10c511c4246e2193dee74eaf64272d8"), quote: "Faire seul, et en être fier." },
   environnement: { img: u("acddebc9fd04c62e7e6abfa0bf3ee6cb7876fa9ab70692bc4f98b9281c3f5f46"), quote: "Des repères stables pour oser explorer." },
 };
+export const PAINTED_TREE = u("b91ed0921188bc07c45d1f4fa10d15e9e892068354fddc465e9e311a685f2dfd");

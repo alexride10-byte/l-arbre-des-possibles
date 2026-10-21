@@ -13,6 +13,7 @@ import { SimulationZone } from "@/components/sim/SimulationZone";
 import { FuturePreview } from "@/components/sim/FuturePreview";
 import { ModeOverlay } from "@/components/sim/ModeOverlay";
 import { HORIZONS, doneSteps, projectedLevels } from "@/lib/rpg";
+import { PAINTED_TREE } from "@/lib/assets";
 
 const MODES: [Mode, string, typeof Eye][] = [["actuelle", "Vue actuelle", Eye], ["simulation", "Simulation", Clock4], ["comparaison", "Comparaison", GitCompare]];
 
@@ -60,7 +61,7 @@ export default function Overview({ fullTree = false }: { fullTree?: boolean }) {
             <button className="icon-btn h-6 w-6" onClick={() => setDetail(2)} aria-label="Plus de détails" data-testid="detail-plus"><Plus size={12} /></button>
           </div>
         </div>
-        <div className="tree-frame relative min-h-0 flex-1">
+        <div className="tree-frame relative min-h-0 flex-1" style={{ ["--painted" as string]: `url(${PAINTED_TREE})` }}>
           <LifeTree avatar={child.avatar} focusId={focus} selectedNode={node} onFocus={openDomain} onNode={onNode} onBack={back} hidden={hidden}
             fragilityId={frag} onFragility={openFrag} onFactor={setFactorId} selectedFactor={factorId} levelLabels={levelLabels} showAllNodes={detail === 2} />
           {(focus || frag) && <button onClick={back} className="btn-back absolute bottom-4 left-4" data-testid="tree-back-button">← Arbre complet</button>}

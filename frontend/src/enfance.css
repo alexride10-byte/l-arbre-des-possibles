@@ -211,3 +211,7 @@ body { -webkit-font-smoothing: antialiased; }
 .thread-row-on { background: rgba(59,130,246,.12); box-shadow: inset 3px 0 0 #3b82f6; }
 .unread-dot, .unread-badge { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; font-size: 10px; font-weight: 700; color: #1a1205; background: #fbbf24; box-shadow: 0 0 10px rgba(251,191,36,.7); }
 .unread-badge { position: absolute; top: 2px; right: 0; min-width: 17px; height: 17px; }
+.branch-label { paint-order: stroke; stroke: rgba(5, 8, 22, 0.9); stroke-width: 5px; stroke-linejoin: round; }
+.sub-label { paint-order: stroke; stroke: rgba(5, 8, 22, 0.6); stroke-width: 2px; }
+.tree-frame { background: #060a1a; isolation: isolate; overflow: hidden; }
+.tree-frame::before { content: ""; position: absolute; inset: -40px; z-index: -1; background: var(--painted) center 40% / cover no-repeat; filter: blur(22px) brightness(.5) saturate(1.2); }
