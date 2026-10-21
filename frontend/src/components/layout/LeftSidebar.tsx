@@ -23,6 +23,7 @@ export function LeftSidebar({ onNavigate }: { onNavigate?: () => void }) {
     ["Profil & avatar", Pencil, () => go("/profil"), pathname === "/profil"],
     ["Environnement", Trees, () => go("/", () => openDomain("environnement")), false],
     ["Documents", FileText, () => go("/documents"), pathname === "/documents"],
+    ["Messagerie", UsersRound, () => go("/messages"), pathname === "/messages"],
     ["Personnes ressources", UsersRound, () => go("/ressources"), pathname === "/ressources"],
   ] as const;
   const views: [string, typeof Network, () => void, boolean][] = [

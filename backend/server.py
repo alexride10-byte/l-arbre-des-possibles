@@ -775,6 +775,117 @@ async def serve_avatar(avatar_id: str):
     return RawResponse(base64.b64decode(doc["data"]), media_type=doc["mime"], headers={"Cache-Control": "public, max-age=31536000"})
 
 
+# ---------- Messagerie sécurisée ----------
+class ThreadIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    child_id: Optional[str] = None
+    participant_ids: list[str] = Field(min_length=1, max_length=20)
+    text: str = Field(min_length=1, max_length=4000)
+
+
+class MessageIn(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+
+
+async def thread_for(user: dict, tid: str) -> dict:
+    t = await db.threads.find_one({"thread_id": tid}, {"_id": 0})
+    if not t or user["user_id"] not in t["participants"]:
+        raise HTTPException(404, "Conversation introuvable")
+    if t.get("child_id"):
+        child = await fetch_child(t["child_id"])
+        if not child or not can_read(user, child):
+            raise HTTPException(403, "Vous n'avez plus accès au dossier lié à cette conversation")
+    return t
+
+
+async def add_message(t: dict, user: dict, text: str):
+    at = now_iso()
+    await db.thread_messages.insert_one({"msg_id": uuid.uuid4().hex, "thread_id": t["thread_id"], "author_id": user["user_id"],
+                                         "author_name": user["name"], "text": text.strip(), "created_at": at})
+    await db.threads.update_one({"thread_id": t["thread_id"]}, {"$set": {"last_at": at, "last_text": text.strip()[:140], "last_author": user["name"], f"read_by.{user['user_id']}": at}})
+
+
+@api.get("/messages/contacts")
+async def message_contacts(request: Request, child_id: Optional[str] = None):
+    user = await current_user(request)
+    users = await db.users.find({"status": "active", "user_id": {"$ne": user["user_id"]}}, {"_id": 0, "password_hash": 0}).to_list(500)
+    if child_id:
+        child = await fetch_child(child_id)
+        if not child or not can_read(user, child):
+            raise HTTPException(404, "Profil introuvable")
+        users = [u for u in users if can_read(u, child)]
+    return [{"user_id": u["user_id"], "name": u["name"], "role": u.get("role"), "picture": u.get("picture")} for u in users]
+
+
+@api.get("/messages/threads")
+async def list_threads(request: Request, child_id: Optional[str] = None):
+    user = await current_user(request)
+    q = {"participants": user["user_id"], **({"child_id": child_id} if child_id else {})}
+    rows = await db.threads.find(q, {"_id": 0}).sort("last_at", -1).to_list(200)
+    out = []
+    for t in rows:
+        if t.get("child_id"):
+            child = await fetch_child(t["child_id"])
+            if not child or not can_read(user, child):
+                continue
+            t["child_name"] = child["name"]
+            t["child_portrait"] = child.get("avatar", {}).get("portrait")
+        seen = t.get("read_by", {}).get(user["user_id"], "")
+        t["unread"] = await db.thread_messages.count_documents({"thread_id": t["thread_id"], "created_at": {"$gt": seen}, "author_id": {"$ne": user["user_id"]}})
+        t.pop("read_by", None)
+        out.append(t)
+    return out
+
+
+@api.post("/messages/threads")
+async def create_thread(body: ThreadIn, request: Request):
+    user = await current_user(request)
+    child = None
+    if body.child_id:
+        child = await fetch_child(body.child_id)
+        if not child or not can_read(user, child):
+            raise HTTPException(404, "Profil introuvable")
+    ids = list(dict.fromkeys([i for i in body.participant_ids if i != user["user_id"]]))
+    members = await db.users.find({"user_id": {"$in": ids}, "status": "active"}, {"_id": 0}).to_list(50)
+    if len(members) != len(ids) or not ids:
+        raise HTTPException(400, "Destinataire invalide ou inactif")
+    if child and any(not can_read(m, child) for m in members):
+        raise HTTPException(403, "Un destinataire n'a pas accès à ce dossier")
+    t = {"thread_id": f"th_{uuid.uuid4().hex[:12]}", "title": body.title.strip(), "child_id": body.child_id,
+         "participants": [user["user_id"], *ids], "participant_names": [user["name"], *[m["name"] for m in members]],
+         "created_by": user["user_id"], "created_at": now_iso(), "read_by": {}}
+    await db.threads.insert_one(t)
+    await add_message(t, user, body.text)
+    await audit(user, "message.thread_create", body.child_id, t["thread_id"], request)
+    return await db.threads.find_one({"thread_id": t["thread_id"]}, {"_id": 0, "read_by": 0})
+
+
+@api.get("/messages/threads/{tid}")
+async def read_thread(tid: str, request: Request):
+    user = await current_user(request)
+    t = await thread_for(user, tid)
+    msgs = await db.thread_messages.find({"thread_id": tid}, {"_id": 0}).sort("created_at", 1).to_list(1000)
+    await db.threads.update_one({"thread_id": tid}, {"$set": {f"read_by.{user['user_id']}": now_iso()}})
+    await audit(user, "message.thread_read", t.get("child_id"), tid, request)
+    t.pop("read_by", None)
+    return {"thread": t, "messages": msgs}
+
+
+@api.post("/messages/threads/{tid}/messages")
+async def post_message(tid: str, body: MessageIn, request: Request):
+    user = await current_user(request)
+    t = await thread_for(user, tid)
+    await add_message(t, user, body.text)
+    await audit(user, "message.send", t.get("child_id"), tid, request)
+    return {"ok": True}
+
+
+@api.get("/messages/unread")
+async def unread_total(request: Request):
+    user = await current_user(request)
+    return {"unread": sum(t["unread"] for t in await list_threads(request))}
+
+
 # ---------- Seed ----------
 IMG = "https://static.prod-images.emergentagent.com/jobs/5a8bc270-5ed8-4704-a01d-2ff7d09abd2b/images/"
 SEED_USERS = [
@@ -812,6 +923,15 @@ async def seed():
             doc.update({"child_id": cid, "levels": levels, "initial_levels": dict(levels), "xp": 120,
                         "assigned": ["seed_educ"] if cid in ("seed_leo", "seed_maya") else [], "avatar": {"face": 0, "hair": 0, "accessory": 0, "portrait": portrait}})
             await db.children.insert_one(doc)
+    if not await db.threads.find_one({"thread_id": "th_seed_leo"}):
+        at = now_iso()
+        await db.threads.insert_one({"thread_id": "th_seed_leo", "title": "Point sur les transitions de Léo", "child_id": "seed_leo",
+                                     "participants": [admin_id, "seed_educ"], "participant_names": ["Claire Admin", "Thomas Éducateur"],
+                                     "created_by": admin_id, "created_at": at, "last_at": at, "last_text": "", "read_by": {}})
+        for author, name, text in [(admin_id, "Claire Admin", "Bonjour Thomas, comment se passent les transitions avec le minuteur visuel ?"),
+                                   ("seed_educ", "Thomas Éducateur", "Mieux ! Le refus dure moins longtemps cette semaine. J'ai ajouté une observation dans le dossier.")]:
+            await db.thread_messages.insert_one({"msg_id": uuid.uuid4().hex, "thread_id": "th_seed_leo", "author_id": author, "author_name": name, "text": text, "created_at": now_iso()})
+        await db.threads.update_one({"thread_id": "th_seed_leo"}, {"$set": {"last_at": now_iso(), "last_text": text[:140], "last_author": name}})
 
 
 @api.get("/")

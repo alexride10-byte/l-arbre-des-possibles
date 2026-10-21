@@ -8,7 +8,7 @@ import { useLocation } from "react-router-dom";
 export function AppShell({ children }: { children: ReactNode }) {
   const { child, user } = useApp();
   const { pathname } = useLocation();
-  const free = user.role === "internal" || ["/admin", "/compte", "/enfants", "/interne"].includes(pathname);
+  const free = user.role === "internal" || ["/admin", "/compte", "/enfants", "/interne", "/messages"].includes(pathname);
   const [menu, setMenu] = useState(false);
   return (
     <main className="night-sky flex h-dvh w-full flex-col overflow-hidden" data-testid="app-shell">

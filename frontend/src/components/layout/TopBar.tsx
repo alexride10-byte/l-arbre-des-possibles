@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "@/lib/api";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Bell, Settings, Search, Sparkles, Menu, Compass, User, Network, Clock, Workflow, Library, LogOut, ShieldCheck, KeyRound } from "lucide-react";
+import { Bell, Settings, Search, Sparkles, Menu, Compass, User, Network, Clock, Workflow, Library, LogOut, ShieldCheck, KeyRound, MessagesSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
 import { useApp } from "@/context/AppContext";
@@ -92,8 +93,19 @@ function SettingsMenu() {
   );
 }
 
+function useUnread() {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const f = () => api<{ unread: number }>("/messages/unread").then((r) => setN(r.unread)).catch(() => {});
+    f(); const t = setInterval(f, 30000); window.addEventListener("messages-read", f);
+    return () => { clearInterval(t); window.removeEventListener("messages-read", f); };
+  }, []);
+  return n;
+}
+
 export function TopBar({ onMenu }: { onMenu: () => void }) {
   const { user, openAssistant } = useApp();
+  const unread = useUnread();
   return (
     <header className="topbar z-30 flex h-16 shrink-0 items-center gap-3 px-4 lg:px-5" data-testid="top-bar">
       <button className="icon-btn lg:hidden" onClick={onMenu} aria-label="Menu" data-testid="mobile-menu-button"><Menu size={20} /></button>
@@ -108,6 +120,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
       <div className="ml-auto flex items-center gap-2">
         {user.role !== "internal" && <SearchBox />}
         {user.role !== "internal" && <button className="btn-ai" onClick={() => openAssistant()} data-testid="open-assistant-button"><Sparkles size={16} /><span className="hidden sm:inline">Assistant IA</span></button>}
+        <NavLink to="/messages" className={({ isActive }) => `icon-btn ${isActive ? "text-foreground" : ""}`} aria-label="Messages" data-testid="topnav-messages"><MessagesSquare size={19} />{unread > 0 && <span className="unread-badge" data-testid="messages-unread-badge">{unread}</span>}</NavLink>
         {user.role !== "internal" && <Notifications />}
         <SettingsMenu />
         {user.picture ? <img src={user.picture} alt={user.name} className="h-9 w-9 rounded-full border border-border" data-testid="user-avatar" />

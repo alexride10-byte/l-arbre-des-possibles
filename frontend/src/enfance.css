@@ -205,3 +205,9 @@ body { -webkit-font-smoothing: antialiased; }
 .avatar-tile:hover { transform: translateY(-2px); border-color: rgba(251, 191, 36, .6); }
 .avatar-tile-on { border-color: #fbbf24; box-shadow: 0 0 18px -4px #fbbf24; }
 .profile-portrait { overflow: hidden; border-radius: 14px; border: 1px solid rgba(251, 191, 36, .3); box-shadow: 0 0 30px -12px rgba(251, 191, 36, .6); }
+
+.thread-row { display: flex; width: 100%; align-items: center; gap: .75rem; padding: .8rem 1rem; border-bottom: 1px solid rgba(120,150,255,.08); transition: background-color .2s; }
+.thread-row:hover { background: rgba(255,255,255,.03); }
+.thread-row-on { background: rgba(59,130,246,.12); box-shadow: inset 3px 0 0 #3b82f6; }
+.unread-dot, .unread-badge { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; font-size: 10px; font-weight: 700; color: #1a1205; background: #fbbf24; box-shadow: 0 0 10px rgba(251,191,36,.7); }
+.unread-badge { position: absolute; top: 2px; right: 0; min-width: 17px; height: 17px; }

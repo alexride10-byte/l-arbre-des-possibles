@@ -10,6 +10,7 @@ import InternalPage from "@/pages/InternalPage";
 import AccountPage from "@/pages/AccountPage";
 import DomainPage from "@/pages/DomainPage";
 import FuturePage from "@/pages/FuturePage";
+import MessagesPage from "@/pages/MessagesPage";
 import Overview from "@/pages/Overview";
 import ProfilePage from "@/pages/ProfilePage";
 import SkillsPage from "@/pages/SkillsPage";
@@ -52,7 +53,7 @@ function Gate() {
   if (user.status !== "active") return <PendingScreen user={user} />;
   if (user.role === "internal") return (
     <AppProvider initialUser={user}><AppShell><Routes>
-      <Route path="/compte" element={<AccountPage />} /><Route path="*" element={<InternalPage />} />
+      <Route path="/compte" element={<AccountPage />} /><Route path="/messages" element={<MessagesPage />} /><Route path="*" element={<InternalPage />} />
     </Routes></AppShell></AppProvider>
   );
   return (
@@ -73,6 +74,7 @@ function Gate() {
           <Route path="/compte" element={<AccountPage />} />
           <Route path="/domaine/:id" element={<DomainPage />} />
           <Route path="/futur" element={<FuturePage />} />
+          <Route path="/messages" element={<MessagesPage />} />
           <Route path="*" element={<Overview />} />
         </Routes>
       </AppShell>
