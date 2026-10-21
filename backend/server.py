@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse, Response as RawResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
-from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone, ImageContent
 
 client = AsyncIOMotorClient(os.environ["MONGO_URL"])
 db = client[os.environ["DB_NAME"]]
@@ -887,6 +887,57 @@ async def unread_total(request: Request):
     return {"unread": sum(t["unread"] for t in await list_threads(request))}
 
 
+# ---------- Arbre peint personnalisé ----------
+BASE_TREE = "https://static.prod-images.emergentagent.com/jobs/5a8bc270-5ed8-4704-a01d-2ff7d09abd2b/images/b91ed0921188bc07c45d1f4fa10d15e9e892068354fddc465e9e311a685f2dfd.jpeg"
+
+
+async def image_b64(src: str) -> str:
+    if src.startswith("/api/avatars/"):
+        doc = await db.avatars.find_one({"avatar_id": src.rsplit("/", 1)[1]}, {"_id": 0, "data": 1})
+        if not doc:
+            raise HTTPException(400, "Portrait introuvable")
+        return doc["data"]
+    async with httpx.AsyncClient(timeout=30) as http:
+        r = await http.get(src)
+    if r.status_code != 200:
+        raise HTTPException(502, "Image source indisponible")
+    return base64.b64encode(r.content).decode()
+
+
+@api.post("/children/{child_id}/tree/generate")
+async def generate_tree(child_id: str, request: Request):
+    _, child = await get_child(request, child_id)
+    portrait = (child.get("avatar") or {}).get("portrait")
+    if not portrait:
+        raise HTTPException(400, "Choisissez d'abord un avatar manga pour l'enfant")
+    prompt = ("Edit the FIRST image (a painted anime fantasy tree of life at night). Keep the exact same composition, tree shape, branch colors and positions, "
+              "sky, city and camera framing unchanged. Only replace the child sitting on the rocks at the base of the trunk (lower right of the trunk) "
+              "with the child from the SECOND image: same face, hair, skin tone, clothes and accessories, drawn in the same painterly anime style, "
+              "sitting in the same pose and place, seen from three quarter back looking up at the tree, lit by warm golden light. No text.")
+    chat = LlmChat(api_key=LLM_KEY, session_id=f"tree-{uuid.uuid4().hex[:8]}", system_message="You edit child-friendly anime illustrations.")
+    chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+    try:
+        _, images = await chat.send_message_multimodal_response(UserMessage(text=prompt, file_contents=[
+            ImageContent(await image_b64(BASE_TREE)), ImageContent(await image_b64(portrait))]))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(502, "La génération de l'arbre a échoué, réessayez.")
+    if not images:
+        raise HTTPException(502, "Aucune image générée, réessayez.")
+    img_id = uuid.uuid4().hex
+    await db.avatars.insert_one({"avatar_id": img_id, "child_id": child_id, "mime": images[0]["mime_type"], "data": images[0]["data"], "kind": "tree", "created_at": now_iso()})
+    await db.children.update_one({"child_id": child_id}, {"$set": {"tree_image": f"/api/avatars/{img_id}"}})
+    return await fetch_child(child_id)
+
+
+@api.delete("/children/{child_id}/tree")
+async def reset_tree(child_id: str, request: Request):
+    await get_child(request, child_id)
+    await db.children.update_one({"child_id": child_id}, {"$unset": {"tree_image": ""}})
+    return await fetch_child(child_id)
+
+
 # ---------- Seed ----------
 IMG = "https://static.prod-images.emergentagent.com/jobs/5a8bc270-5ed8-4704-a01d-2ff7d09abd2b/images/"
 SEED_USERS = [
@@ -924,6 +975,19 @@ async def seed():
             doc.update({"child_id": cid, "levels": levels, "initial_levels": dict(levels), "xp": 120,
                         "assigned": ["seed_educ"] if cid in ("seed_leo", "seed_maya") else [], "avatar": {"face": 0, "hair": 0, "accessory": 0, "portrait": portrait}})
             await db.children.insert_one(doc)
+    for cid, *_ in SEED_CHILDREN:
+        c = await fetch_child(cid)
+        if c and not any(h.get("fictional") for h in c.get("level_history", [])):
+            hist, initial = [], {}
+            for i, (dom, lvl) in enumerate(c["levels"].items()):
+                start = max(1, lvl - 1 - (i % 2))
+                initial[dom] = start
+                for step, months in enumerate(range(10 - i % 3, 0, -4)):
+                    frm = min(lvl, start + step)
+                    to = min(lvl, frm + 1)
+                    if to > frm:
+                        hist.append({"domain_id": dom, "from": frm, "to": to, "date": (datetime.now(timezone.utc) - timedelta(days=30 * months + i * 3)).isoformat(), "fictional": True})
+            await db.children.update_one({"child_id": cid}, {"$set": {"level_history": sorted(hist + c.get("level_history", []), key=lambda h: h["date"]), "initial_levels": initial}})
     if not await db.threads.find_one({"thread_id": "th_seed_leo"}):
         at = now_iso()
         await db.threads.insert_one({"thread_id": "th_seed_leo", "title": "Point sur les transitions de Léo", "child_id": "seed_leo",

@@ -9,11 +9,11 @@ export function SimulationZone() {
   const data = chartData(child.levels, doneSteps(child));
   return (
     <section className="panel sim-zone flex min-h-0 flex-col p-4 pt-3" data-testid="simulation-zone">
-      <h3 className="mb-2 flex items-center gap-2 font-display text-lg font-semibold">Simulation de trajectoires possibles
+      <h3 className="mb-2 flex items-center gap-2 whitespace-nowrap font-display text-base font-semibold">Trajectoires possibles
         <span title="Projection illustrative calculée à partir des niveaux actuels et des étapes réalisées. Ce n'est pas une prédiction."><HelpCircle size={15} className="text-muted-foreground" /></span>
       </h3>
       <div className="flex min-h-0 flex-1 gap-4">
-        <div className="flex w-44 shrink-0 flex-col gap-1.5">
+        <div className="flex w-36 shrink-0 flex-col gap-1">
           {SCENARIOS.map((s) => (
             <button key={s.id} onClick={() => setScenario(s.id)} className={`scenario-btn ${scenario === s.id ? "scenario-on" : ""}`} data-testid={`scenario-${s.id}`}>
               <span className="h-3 w-3 rounded-full" style={{ background: s.color, boxShadow: `0 0 10px ${s.color}` }} />{s.label}

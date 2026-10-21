@@ -11,7 +11,7 @@ export interface Child {
   levels: Record<string, number>; initial_levels: Record<string, number>;
   level_history: { domain_id: string; from: number; to: number; date: string }[];
   quest_steps: Record<string, { status: StepStatus; date: string }>; xp: number; created_at: string;
-  user_id: string; owner_name?: string; shares?: { email: string; role: "parent" | "pro"; date: string }[]; custom_quests?: (Quest & { custom?: boolean })[]; assigned?: string[]; access?: "owner" | "assigned" | "shared" | "structure" | "readonly"; avatar_history?: { url: string; date: string; xp: number }[];
+  user_id: string; owner_name?: string; shares?: { email: string; role: "parent" | "pro"; date: string }[]; custom_quests?: (Quest & { custom?: boolean })[]; assigned?: string[]; tree_image?: string | null; access?: "owner" | "assigned" | "shared" | "structure" | "readonly"; avatar_history?: { url: string; date: string; xp: number }[];
 }
 export interface Observation { obs_id: string; child_id: string; domain_id: string; date: string; fact: string; context: string; author?: string }
 export interface AiMessage { role: "user" | "assistant"; text: string; created_at?: string }

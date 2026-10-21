@@ -32,9 +32,10 @@ interface Props {
   levelLabels?: Record<string, string>;
   showAllNodes?: boolean;
   painted?: boolean;
+  paintedSrc?: string;
 }
 
-export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBack, hidden = [], fragilityId = null, onFragility, onFactor, selectedFactor, levelLabels = {}, showAllNodes = false, painted = true }: Props) {
+export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBack, hidden = [], fragilityId = null, onFragility, onFactor, selectedFactor, levelLabels = {}, showAllNodes = false, painted = true, paintedSrc = PAINTED_TREE }: Props) {
   const mobile = useIsMobile();
   const svgRef = useRef<SVGSVGElement>(null);
   const [height, setHeight] = useState(830);
@@ -128,7 +129,7 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
 
       <g className="camera" style={{ transform }}>
         {painted && <g pointerEvents="none" data-testid="tree-painted-bg">
-          <image href={PAINTED_TREE} x="-150" y="-40" width="1300" height="872" preserveAspectRatio="xMidYMid slice" mask="url(#painted-mask)" />
+          <image href={paintedSrc} x="-150" y="-40" width="1300" height="872" preserveAspectRatio="xMidYMid slice" mask="url(#painted-mask)" />
           <rect x="-150" y="-40" width="1300" height="872" fill="url(#painted-vignette)" />
         </g>}
         {!painted && <>

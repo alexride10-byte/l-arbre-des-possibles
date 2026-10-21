@@ -216,3 +216,7 @@ body { -webkit-font-smoothing: antialiased; }
 .tree-frame { background: #060a1a; isolation: isolate; overflow: hidden; }
 .tree-frame::before { content: ""; position: absolute; inset: -40px; z-index: -1; background: var(--painted) center 40% / cover no-repeat; filter: blur(22px) brightness(.5) saturate(1.2); }
 .frag-label { paint-order: stroke; stroke: rgba(5, 8, 22, 0.92); stroke-width: 4px; stroke-linejoin: round; }
+
+.bottom-split > * { min-height: 0; height: 100%; }
+@media (max-width: 1023px) { .bottom-split > * { height: 300px; } }
+.bottom-split .scenario-btn { white-space: nowrap; font-size: .72rem; padding: .32rem .55rem; gap: .45rem; }

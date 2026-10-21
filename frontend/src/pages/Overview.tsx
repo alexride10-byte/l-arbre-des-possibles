@@ -14,6 +14,9 @@ import { FuturePreview } from "@/components/sim/FuturePreview";
 import { ModeOverlay } from "@/components/sim/ModeOverlay";
 import { HORIZONS, doneSteps, projectedLevels } from "@/lib/rpg";
 import { PAINTED_TREE } from "@/lib/assets";
+import { portraitSrc } from "@/components/layout/Portrait";
+import { TreeArtButton } from "@/components/tree/TreeArtButton";
+import { ProgressionChart } from "@/components/sim/ProgressionChart";
 
 const MODES: [Mode, string, typeof Eye][] = [["actuelle", "Vue actuelle", Eye], ["simulation", "Simulation", Clock4], ["comparaison", "Comparaison", GitCompare]];
 
@@ -38,6 +41,7 @@ export default function Overview({ fullTree = false }: { fullTree?: boolean }) {
     if (mode === "comparaison") return [d.id, `${child.initial_levels[d.id] ?? now} → ${now}`];
     return [d.id, `Niv. ${now}/5`];
   }));
+  const treeSrc = portraitSrc(child.tree_image) ?? PAINTED_TREE;
   const onNode = (nid: string) => { const d = DOMAINS.find((x) => x.nodes.some((n) => n.id === nid)); if (d) openNode(d.id, nid); };
 
   const panel = factor ? <FactorPanel factor={factor} onNetwork={() => setFactorId(null)} onBack={back} />
@@ -55,21 +59,22 @@ export default function Overview({ fullTree = false }: { fullTree?: boolean }) {
             ))}
           </div>
           <h2 className="mx-auto hidden font-display text-xl font-semibold md:block">Son potentiel grandit chaque jour <span className="block text-center text-xs font-normal text-muted-foreground">7 domaines pour l'aider à s'épanouir</span></h2>
+          <TreeArtButton />
           <div className="seg items-center gap-2 px-3 text-xs" data-testid="detail-level-control">
             <span className="text-muted-foreground">Niveau de détail</span>
             <button className="icon-btn h-6 w-6" onClick={() => setDetail(1)} aria-label="Moins de détails" data-testid="detail-minus"><Minus size={12} /></button>
             <button className="icon-btn h-6 w-6" onClick={() => setDetail(2)} aria-label="Plus de détails" data-testid="detail-plus"><Plus size={12} /></button>
           </div>
         </div>
-        <div className="tree-frame relative min-h-0 flex-1" style={{ ["--painted" as string]: `url(${PAINTED_TREE})` }}>
+        <div className="tree-frame relative min-h-0 flex-1" style={{ ["--painted" as string]: `url(${treeSrc})` }}>
           <LifeTree avatar={child.avatar} focusId={focus} selectedNode={node} onFocus={openDomain} onNode={onNode} onBack={back} hidden={hidden}
-            fragilityId={frag} onFragility={openFrag} onFactor={setFactorId} selectedFactor={factorId} levelLabels={levelLabels} showAllNodes={detail === 2} />
+            fragilityId={frag} onFragility={openFrag} onFactor={setFactorId} selectedFactor={factorId} levelLabels={levelLabels} showAllNodes={detail === 2} paintedSrc={treeSrc} />
           {(focus || frag) && <button onClick={back} className="btn-back absolute bottom-4 left-4" data-testid="tree-back-button">← Arbre complet</button>}
           {mode !== "actuelle" && <ModeOverlay />}
         </div>
       </section>
       <div className="overview-right min-h-0" data-testid="detail-column">{panel}</div>
-      {!fullTree && <SimulationZone />}
+      {!fullTree && <div className="bottom-split grid min-h-0 gap-3 md:grid-cols-2"><SimulationZone /><ProgressionChart /></div>}
       {!fullTree && <FuturePreview />}
     </div>
   );
