@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Plus, Trash2, Save, Palette } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { send, type Child } from "@/lib/api";
-import { AvatarIllustration } from "@/components/layout/AvatarIllustration";
+import { Portrait } from "@/components/layout/Portrait";
 import { AvatarCustomizer } from "@/components/layout/AvatarCustomizer";
 import { xpLevel } from "@/lib/rpg";
 import { SharePanel } from "@/components/layout/SharePanel";
+import { AvatarStudio } from "@/components/layout/AvatarStudio";
 
 export default function ProfilePage() {
   const { child, profiles, selectChild, saveChild, reloadProfiles, user } = useApp();
@@ -31,12 +32,12 @@ export default function ProfilePage() {
     <div className="page grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]" data-testid="profile-page">
       <section className="panel space-y-5 p-6">
         <div className="flex flex-wrap items-center gap-5">
-          <div className="profile-portrait h-40 w-36"><AvatarIllustration options={child.avatar} className="h-full w-full" /></div>
+          <div className="profile-portrait h-40 w-36"><Portrait avatar={child.avatar} alt={child.name} /></div>
           <div className="space-y-2">
             <p className="eyebrow">Profil de l'enfant</p>
             <h1 className="font-display text-3xl font-semibold">{child.name}</h1>
             <p className="text-sm text-muted-foreground">Niveau {xpLevel(child.xp).level} · {child.xp} XP</p>
-            <button className="btn-outline" onClick={() => setAvatarOpen(true)} data-testid="profile-avatar-button"><Palette size={15} /> Personnaliser l'avatar</button>
+            <button className="btn-outline" onClick={() => setAvatarOpen(true)} data-testid="profile-avatar-button"><Palette size={15} /> Avatar illustré (simple)</button>
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -53,7 +54,7 @@ export default function ProfilePage() {
           {profiles.map((p) => (
             <li key={p.child_id} className={`profile-row ${p.child_id === child.child_id ? "profile-row-on" : ""}`} data-testid={`profile-row-${p.child_id}`}>
               <button className="flex flex-1 items-center gap-3 text-left" onClick={() => selectChild(p.child_id)}>
-                <span className="h-10 w-9 overflow-hidden rounded-md bg-muted"><AvatarIllustration options={p.avatar} className="h-full w-full" /></span>
+                <span className="h-10 w-9 overflow-hidden rounded-md bg-muted"><Portrait avatar={p.avatar} alt={p.name} /></span>
                 <span><span className="block text-sm font-semibold">{p.name}</span><span className="text-xs text-muted-foreground">{p.age} ans {p.grade && `· ${p.grade}`}</span></span>
               </button>
               {p.owner_name && <span className="pill-muted">Partagé</span>}
@@ -71,7 +72,8 @@ export default function ProfilePage() {
           <button className="btn-outline w-full" type="submit" data-testid="new-profile-submit"><Plus size={15} /> Ajouter le profil</button>
         </form>
       </section>
-      <div className="xl:col-start-2"><SharePanel /></div>
+      <div className="xl:col-span-1"><AvatarStudio /></div>
+      <div><SharePanel /></div>
       {avatarOpen && <AvatarCustomizer options={child.avatar} onChange={async (a) => saveChild(await send<Child>(`/children/${child.child_id}`, "PUT", { avatar: a }))} onClose={() => setAvatarOpen(false)} />}
     </div>
   );

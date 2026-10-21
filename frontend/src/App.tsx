@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { api, send, setToken, type User } from "@/lib/api";
 import { AppProvider } from "@/context/AppContext";
 import { AppShell } from "@/components/layout/AppShell";
-import Login from "@/pages/Login";
+import Login, { PendingScreen } from "@/pages/Login";
+import ChildrenPage from "@/pages/ChildrenPage";
+import AdminPage from "@/pages/AdminPage";
+import InternalPage from "@/pages/InternalPage";
+import AccountPage from "@/pages/AccountPage";
+import DomainPage from "@/pages/DomainPage";
+import FuturePage from "@/pages/FuturePage";
 import Overview from "@/pages/Overview";
 import ProfilePage from "@/pages/ProfilePage";
 import SkillsPage from "@/pages/SkillsPage";
@@ -43,6 +49,12 @@ function Gate() {
   }, [user]);
   if (user === null) return <Splash />;
   if (user === false) return <Login />;
+  if (user.status !== "active") return <PendingScreen user={user} />;
+  if (user.role === "internal") return (
+    <AppProvider initialUser={user}><AppShell><Routes>
+      <Route path="/compte" element={<AccountPage />} /><Route path="*" element={<InternalPage />} />
+    </Routes></AppShell></AppProvider>
+  );
   return (
     <AppProvider initialUser={user}>
       <AppShell>
@@ -56,6 +68,11 @@ function Gate() {
           <Route path="/ressources" element={<ResourcesPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/carte" element={<ProgressCardPage />} />
+          <Route path="/enfants" element={<ChildrenPage />} />
+          <Route path="/admin" element={user.role === "admin" ? <AdminPage /> : <Navigate to="/" />} />
+          <Route path="/compte" element={<AccountPage />} />
+          <Route path="/domaine/:id" element={<DomainPage />} />
+          <Route path="/futur" element={<FuturePage />} />
           <Route path="*" element={<Overview />} />
         </Routes>
       </AppShell>
@@ -66,5 +83,7 @@ function Gate() {
 export default function App() {
   const location = useLocation();
   if (location.hash?.includes("session_id=")) return <AuthCallback />;
+  if (location.pathname === "/verifier") return <Login initial="verify" />;
+  if (location.pathname === "/reinitialiser") return <Login initial="reset" />;
   return <Gate />;
 }

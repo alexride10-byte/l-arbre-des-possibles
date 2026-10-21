@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { X, Minus, Plus, Sprout } from "lucide-react";
 import { KIND_LABEL, type Domain } from "@/data/domains";
 import { useApp } from "@/context/AppContext";
@@ -9,13 +10,13 @@ const TABS = [["details", "Détails"], ["actions", "Actions"], ["impacts", "Impa
 type Tab = (typeof TABS)[number][0];
 
 export function LevelBar({ domainId, compact = false }: { domainId: string; compact?: boolean }) {
-  const { child, setLevel } = useApp();
+  const { child, setLevel, canWrite } = useApp();
   const level = child?.levels[domainId] ?? 1;
   return (
     <div className="flex items-center gap-2" data-testid={`level-bar-${domainId}`}>
-      {!compact && <button className="icon-btn h-7 w-7" disabled={level <= 1} onClick={() => setLevel(domainId, level - 1)} aria-label="Baisser le niveau" data-testid={`level-dec-${domainId}`}><Minus size={13} /></button>}
+      {!compact && canWrite && <button className="icon-btn h-7 w-7" disabled={level <= 1} onClick={() => setLevel(domainId, level - 1)} aria-label="Baisser le niveau" data-testid={`level-dec-${domainId}`}><Minus size={13} /></button>}
       <div className="level-track flex-1"><div className="level-fill" style={{ width: `${level * 20}%` }} /></div>
-      {!compact && <button className="icon-btn h-7 w-7" disabled={level >= 5} onClick={() => setLevel(domainId, level + 1)} aria-label="Augmenter le niveau" data-testid={`level-inc-${domainId}`}><Plus size={13} /></button>}
+      {!compact && canWrite && <button className="icon-btn h-7 w-7" disabled={level >= 5} onClick={() => setLevel(domainId, level + 1)} aria-label="Augmenter le niveau" data-testid={`level-inc-${domainId}`}><Plus size={13} /></button>}
       <span className="w-8 text-right text-sm font-semibold" data-testid={`level-value-${domainId}`}>{level}/5</span>
     </div>
   );
@@ -34,6 +35,7 @@ export function DetailPanel({ domain, nodeId }: { domain: Domain; nodeId: string
           <p className="text-sm font-medium" style={{ color: domainColor(domain.id) }}>{domain.name}</p>
           <h2 className="font-display text-2xl font-semibold leading-tight" data-testid="detail-title">{node?.label ?? domain.name}</h2>
         </div>
+        <Link to={`/domaine/${domain.id}`} className="btn-outline h-8 px-2.5 text-xs" data-testid="detail-open-domain-page">Page</Link>
         <button className="icon-btn h-8 w-8" onClick={back} aria-label="Fermer" data-testid="detail-close-button"><X size={16} /></button>
       </header>
       <div className="space-y-2 px-4">

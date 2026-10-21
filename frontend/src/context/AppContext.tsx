@@ -5,7 +5,7 @@ import type { ScenarioId } from "@/lib/rpg";
 export type Mode = "actuelle" | "simulation" | "comparaison";
 
 interface AppCtx {
-  user: User; setUser: (u: User) => void; logout: () => Promise<void>;
+  user: User; setUser: (u: User) => void; logout: () => Promise<void>; canWrite: boolean;
   profiles: Child[]; child: Child | null; selectChild: (id: string) => void; reloadProfiles: () => Promise<void>; saveChild: (c: Child) => void;
   observations: Observation[]; reloadObs: () => Promise<void>;
   setLevel: (domainId: string, level: number) => Promise<void>;
@@ -49,7 +49,7 @@ export function AppProvider({ initialUser, children }: { initialUser: User; chil
   const back = () => { setFocus(null); setNode(null); setFrag(null); setFactorId(null); };
 
   const value: AppCtx = {
-    user, setUser,
+    user, setUser, canWrite: user.role !== "direction",
     logout: async () => { await send("/auth/logout", "POST"); setToken(null); window.location.href = "/"; },
     profiles, child, reloadProfiles, saveChild,
     selectChild: (id) => { localStorage.setItem(KEY, id); setChildId(id); back(); },

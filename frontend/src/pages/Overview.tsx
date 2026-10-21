@@ -53,7 +53,7 @@ export default function Overview({ fullTree = false }: { fullTree?: boolean }) {
               <button key={m} onClick={() => setMode(m)} className={`seg-btn ${mode === m ? "seg-on" : ""}`} data-testid={`mode-${m}`}><Icon size={14} />{label}</button>
             ))}
           </div>
-          <h2 className="mx-auto hidden font-display text-xl font-semibold md:block">Potentiel et épanouissement</h2>
+          <h2 className="mx-auto hidden font-display text-xl font-semibold md:block">Son potentiel grandit chaque jour <span className="block text-center text-xs font-normal text-muted-foreground">7 domaines pour l'aider à s'épanouir</span></h2>
           <div className="seg items-center gap-2 px-3 text-xs" data-testid="detail-level-control">
             <span className="text-muted-foreground">Niveau de détail</span>
             <button className="icon-btn h-6 w-6" onClick={() => setDetail(1)} aria-label="Moins de détails" data-testid="detail-minus"><Minus size={12} /></button>

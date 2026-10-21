@@ -7,7 +7,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const empty = { obs_id: "", date: "", fact: "", context: "" };
 
 export function ObservationsEditor({ domainId }: { domainId: string }) {
-  const { child, observations, reloadObs, reloadProfiles } = useApp();
+  const { child, observations, reloadObs, reloadProfiles, canWrite } = useApp();
   const [draft, setDraft] = useState<typeof empty | null>(null);
   const [query, setQuery] = useState("");
   if (!child) return null;
@@ -30,7 +30,7 @@ export function ObservationsEditor({ domainId }: { domainId: string }) {
     <section className="space-y-3" data-testid="observations-editor">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Mes observations <span className="text-[11px] font-normal text-gold">+10 XP</span></h3>
-        {!draft && <button className="btn-ghost" onClick={() => setDraft({ ...empty, date: today() })} data-testid="observation-add-button">+ Ajouter</button>}
+        {!draft && canWrite && <button className="btn-ghost" onClick={() => setDraft({ ...empty, date: today() })} data-testid="observation-add-button">+ Ajouter</button>}
       </div>
       {draft && (
         <form onSubmit={submit} className="space-y-2 rounded-lg border border-border bg-muted/40 p-3" data-testid="observation-form">

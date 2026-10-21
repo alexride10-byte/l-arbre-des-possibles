@@ -82,3 +82,21 @@ export function badges(child: Child, obs: Observation[]): Badge[] {
     { id: "explorateur", label: "Explorateur", desc: "3 réévaluations de niveau", earned: child.level_history.length >= 3 },
   ];
 }
+
+export const globalScore = (levels: Record<string, number>) =>
+  Math.round((DOMAINS.reduce((n, d) => n + (levels[d.id] ?? 1), 0) / DOMAINS.length) * 20);
+
+export const scoreLabel = (s: number) => (s >= 75 ? "Bel épanouissement" : s >= 60 ? "Bon équilibre global" : s >= 45 ? "En progression" : "À soutenir en priorité");
+
+export function domainRanking(child: Child) {
+  return DOMAINS.map((d) => ({ d, level: child.levels[d.id] ?? 1, delta: ((child.levels[d.id] ?? 1) - (child.initial_levels[d.id] ?? 1)) * 20 }))
+    .sort((a, b) => b.level - a.level || b.delta - a.delta);
+}
+
+const KIND_OFFSET: Record<string, number> = { ressource: 8, competence: 4, besoin: -6, difficulte: -12 };
+export const skillPct = (level: number, kind: string, idx: number) => Math.max(8, Math.min(98, level * 20 + (KIND_OFFSET[kind] ?? 0) + ((idx * 7) % 9) - 4));
+
+export function nextSuggestions(child: Child, n = 3) {
+  return allQuests(child).flatMap((q) => q.steps.map((s, i) => ({ q, s, i, st: stepStatus(child, q.id, i, s.status) })))
+    .filter((x) => x.st !== "fait").sort((a, b) => (a.st === "en cours" ? -1 : 0) - (b.st === "en cours" ? -1 : 0)).slice(0, n);
+}

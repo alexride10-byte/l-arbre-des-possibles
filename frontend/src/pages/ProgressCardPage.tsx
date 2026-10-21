@@ -1,7 +1,7 @@
 import { Award, Lock, Printer, Star, Sprout } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { DOMAINS } from "@/data/domains";
-import { AvatarIllustration } from "@/components/layout/AvatarIllustration";
+import { Portrait } from "@/components/layout/Portrait";
 import { DOMAIN_ICON, domainColor, frDate } from "@/lib/icons";
 import { allQuests, badges, xpLevel } from "@/lib/rpg";
 
@@ -23,7 +23,7 @@ export default function ProgressCardPage() {
       </div>
       <article className="progress-card print-card mx-auto max-w-3xl space-y-6 p-8" data-testid="progress-card">
         <header className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
-          <div className="h-36 w-32 overflow-hidden rounded-2xl border-2 border-amber-300/60 bg-[radial-gradient(ellipse_at_50%_30%,#3b6fb0,#141c3a_75%)]"><AvatarIllustration options={child.avatar} className="h-full w-full" /></div>
+          <div className="h-36 w-32 overflow-hidden rounded-2xl border-2 border-amber-300/60 bg-[radial-gradient(ellipse_at_50%_30%,#3b6fb0,#141c3a_75%)]"><Portrait avatar={child.avatar} alt={child.name} /></div>
           <div className="min-w-0 w-full flex-1 space-y-1">
             <p className="text-xs uppercase tracking-[0.25em] text-amber-200/80">Enfance+ · Carte de progrès</p>
             <h2 className="font-display text-4xl font-bold" data-testid="progress-card-name">Bravo {child.name} !</h2>

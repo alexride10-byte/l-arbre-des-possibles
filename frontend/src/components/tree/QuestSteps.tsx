@@ -10,7 +10,7 @@ const NEXT: Record<StepStatus, StepStatus> = { "à venir": "en cours", "en cours
 const ICON = { fait: Check, "en cours": Loader, "à venir": Circle };
 
 export function QuestCard({ quest, detailed = false }: { quest: Quest; detailed?: boolean }) {
-  const { child, setStep, saveChild, user } = useApp();
+  const { child, setStep, saveChild, user, canWrite } = useApp();
   if (!child) return null;
   const statuses = quest.steps.map((s, i) => stepStatus(child, quest.id, i, s.status));
   const done = statuses.filter((s) => s === "fait").length;
@@ -31,7 +31,7 @@ export function QuestCard({ quest, detailed = false }: { quest: Quest; detailed?
           const st = statuses[i]!; const I = ICON[st];
           return (
             <li key={i}>
-              <button onClick={() => setStep(quest.id, i, NEXT[st])} className={`step-row step-${st.replace(/\s|à/g, "")}`} title="Cliquer pour changer le statut" data-testid={`quest-step-${quest.id}-${i}`}>
+              <button disabled={!canWrite} onClick={() => setStep(quest.id, i, NEXT[st])} className={`step-row step-${st.replace(/\s|à/g, "")}`} title="Cliquer pour changer le statut" data-testid={`quest-step-${quest.id}-${i}`}>
                 <I size={14} className="shrink-0" />
                 <span className="min-w-0 flex-1 text-left"><span className="block text-sm">{s.title}</span>{detailed && <span className="block text-[11px] text-muted-foreground">{s.action} · Indicateur : {s.indicator}</span>}</span>
                 <span className="text-[10px] uppercase tracking-wider">{st}</span>

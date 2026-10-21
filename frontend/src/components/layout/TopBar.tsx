@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Bell, Settings, Search, Sparkles, Menu, Compass, User, Network, Clock, Workflow, Library, LogOut } from "lucide-react";
+import { Bell, Settings, Search, Sparkles, Menu, Compass, User, Network, Clock, Workflow, Library, LogOut, ShieldCheck, KeyRound } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
 import { useApp } from "@/context/AppContext";
 import { DOMAINS } from "@/data/domains";
@@ -9,8 +10,8 @@ import { allQuests, stepStatus } from "@/lib/rpg";
 import { AiSettings } from "@/components/assistant/AiSettings";
 
 const NAV = [
-  ["/", "Vue d'ensemble", Compass], ["/profil", "Profil", User], ["/arbre", "Arbre de développement", Network],
-  ["/chronologie", "Chronologie", Clock], ["/interventions", "Interventions", Workflow], ["/ressources", "Ressources", Library],
+  ["/", "Vue d'ensemble", Compass], ["/enfants", "Enfants", User], ["/interventions", "Activités", Workflow],
+  ["/chronologie", "Suivi", Clock], ["/futur", "Futur", Network], ["/ressources", "Ressources", Library],
 ] as const;
 
 function SearchBox() {
@@ -73,6 +74,7 @@ function SettingsMenu() {
         <div className="popover absolute right-0 top-12 z-50 w-72 space-y-3 p-4" data-testid="settings-popover">
           <p className="text-sm font-semibold">{user.name}</p>
           <p className="text-xs text-muted-foreground">{user.email}</p>
+          <Link to="/compte" className="menu-item" onClick={() => setOpen(false)} data-testid="settings-account-link"><span className="flex items-center gap-2"><KeyRound size={14} /> Mon compte et sessions</span></Link>
           <AiSettings />
           <p className="eyebrow pt-2">Je suis</p>
           <div className="grid grid-cols-2 gap-2">
@@ -97,7 +99,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
       <button className="icon-btn lg:hidden" onClick={onMenu} aria-label="Menu" data-testid="mobile-menu-button"><Menu size={20} /></button>
       <Logo />
       <nav className="ml-6 hidden items-center gap-1 2xl:ml-10 lg:flex" aria-label="Navigation principale">
-        {NAV.map(([to, label, Icon]) => (
+        {[...(user.role === "internal" ? [["/interne", "Espace interne", Compass] as const] : NAV), ...(user.role === "admin" ? [["/admin", "Administration", ShieldCheck] as const] : [])].map(([to, label, Icon]) => (
           <NavLink key={to} to={to} end className={({ isActive }) => `topnav-pill ${isActive ? "topnav-pill-active" : ""}`} data-testid={`topnav-${to === "/" ? "overview" : to.slice(1)}`}>
             <Icon size={16} /><span className="hidden xl:inline">{label}</span>
           </NavLink>

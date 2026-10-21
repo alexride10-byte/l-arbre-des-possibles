@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Heart, Users, Brain, BookOpen, Activity, Sprout, House, AlertTriangle, Zap, Focus, Moon, Wind, Handshake } from "lucide-react";
 import { FactorNetwork } from "./FactorNetwork";
 import { AvatarIllustration, type AvatarOptions } from "@/components/layout/AvatarIllustration";
+import { portraitSrc } from "@/components/layout/Portrait";
 import { FRAGILITIES } from "@/data/fragilities";
 
 const FRAG_POS = [{ x: 230, y: 624 }, { x: 340, y: 658 }, { x: 450, y: 634 }, { x: 560, y: 658 }, { x: 670, y: 634 }, { x: 780, y: 658 }];
@@ -253,7 +254,14 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
             </g>
           );
         })}
-        <svg x="444" y="455" width="112" height="146" pointerEvents="none" opacity={focusId || frag ? .3 : 1}><AvatarIllustration options={avatar} /></svg>
+        {avatar.portrait ? (
+          <g pointerEvents="none" opacity={focusId || frag ? .3 : 1} data-testid="tree-portrait">
+            <defs><clipPath id="portrait-clip"><circle cx="500" cy="506" r="56" /></clipPath></defs>
+            <circle cx="500" cy="506" r="63" fill="none" stroke="var(--gold)" strokeWidth="1.2" opacity=".5" filter="url(#halo)" />
+            <image href={portraitSrc(avatar.portrait) ?? ""} x="444" y="450" width="112" height="112" clipPath="url(#portrait-clip)" preserveAspectRatio="xMidYMid slice" />
+            <circle cx="500" cy="506" r="56" fill="none" stroke="var(--gold)" strokeWidth="2.2" />
+          </g>
+        ) : <svg x="444" y="455" width="112" height="146" pointerEvents="none" opacity={focusId || frag ? .3 : 1}><AvatarIllustration options={avatar} /></svg>}
         {focusId === "emotionnel" && !frag && <g className="subnode anxiety-discovery" role="button" tabIndex={0} aria-label="Fragilité : Anxiété" onClick={(e) => { e.stopPropagation(); onFragility?.("f-anxiete"); }} onKeyDown={(e) => { if (e.key === "Enter") onFragility?.("f-anxiete"); }}>
           <path d={`M${focusedGeo?.end.x ?? 500},${focusedGeo?.end.y ?? 185} Q610,195 650,210`} stroke="var(--fragility)" strokeWidth="1" fill="none" className="sap" pointerEvents="none" />
           <rect x="625" y="195" width="95" height="29" rx="8" fill="var(--background)" stroke="var(--fragility)" /><AlertTriangle x="632" y="202" width="15" height="15" color="var(--fragility)" pointerEvents="none" /><text x="654" y="214" className="discovery-label" pointerEvents="none">Anxiété</text>

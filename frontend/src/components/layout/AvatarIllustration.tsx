@@ -1,4 +1,4 @@
-export interface AvatarOptions { face: number; hair: number; accessory: number }
+export interface AvatarOptions { face: number; hair: number; accessory: number; portrait?: string | null }
 export const DEFAULT_AVATAR: AvatarOptions = { face: 0, hair: 0, accessory: 0 };
 
 /** Entirely illustrated fictional portrait; no photo or remote service. */

@@ -2,15 +2,16 @@ import type { Quest } from "@/data/quests";
 
 export const API = `${import.meta.env.REACT_APP_BACKEND_URL}/api`;
 
-export interface User { user_id: string; email: string; name: string; picture?: string; audience: "pro" | "parent"; auth_enabled?: boolean }
-export interface Avatar { face: number; hair: number; accessory: number }
+export type Role = "admin" | "direction" | "educator" | "internal";
+export interface User { user_id: string; email: string; name: string; picture?: string; audience: "pro" | "parent"; auth_enabled?: boolean; role?: Role | null; status?: "pending" | "active" | "revoked"; email_verified?: boolean; created_at?: string }
+export interface Avatar { face: number; hair: number; accessory: number; portrait?: string | null }
 export type StepStatus = "fait" | "en cours" | "à venir";
 export interface Child {
   child_id: string; name: string; age: number; grade: string; notes: string; avatar: Avatar;
   levels: Record<string, number>; initial_levels: Record<string, number>;
   level_history: { domain_id: string; from: number; to: number; date: string }[];
   quest_steps: Record<string, { status: StepStatus; date: string }>; xp: number; created_at: string;
-  user_id: string; owner_name?: string; shares?: { email: string; role: "parent" | "pro"; date: string }[]; custom_quests?: (Quest & { custom?: boolean })[];
+  user_id: string; owner_name?: string; shares?: { email: string; role: "parent" | "pro"; date: string }[]; custom_quests?: (Quest & { custom?: boolean })[]; assigned?: string[]; avatar_history?: { url: string; date: string; xp: number }[];
 }
 export interface Observation { obs_id: string; child_id: string; domain_id: string; date: string; fact: string; context: string; author?: string }
 export interface AiMessage { role: "user" | "assistant"; text: string; created_at?: string }
