@@ -5,6 +5,7 @@ import { api, send } from "@/lib/api";
 import { frDate } from "@/lib/icons";
 
 interface Session { session_id: string; created_at?: string; user_agent: string; ip?: string; current: boolean }
+const ua = (s: string) => `${/Edg\//.test(s) ? "Edge" : /Chrome\//.test(s) ? "Chrome" : /Firefox\//.test(s) ? "Firefox" : /Safari\//.test(s) ? "Safari" : "Navigateur"} · ${/Windows/.test(s) ? "Windows" : /Mac OS/.test(s) ? "macOS" : /Android/.test(s) ? "Android" : /iPhone|iPad/.test(s) ? "iOS" : /Linux/.test(s) ? "Linux" : "Système inconnu"}`;
 const ROLE: Record<string, string> = { admin: "Administrateur de structure", direction: "Direction", educator: "Éducateur / professionnel", internal: "Équipe Enfance+" };
 
 export default function AccountPage() {
@@ -28,7 +29,7 @@ export default function AccountPage() {
         {sessions.map((s) => (
           <div key={s.session_id} className="admin-row" data-testid={`session-${s.session_id}`}>
             <Laptop size={18} className="text-muted-foreground" />
-            <div className="min-w-0 flex-1"><p className="truncate text-sm">{s.user_agent || "Appareil inconnu"}</p><p className="text-xs text-muted-foreground">{s.created_at && frDate(s.created_at)} · {s.ip ?? "IP inconnue"}</p></div>
+            <div className="min-w-0 flex-1"><p className="truncate text-sm">{s.user_agent ? ua(s.user_agent) : "Appareil inconnu"}</p><p className="text-xs text-muted-foreground">{s.created_at && frDate(s.created_at)} · {s.ip ?? "IP inconnue"}</p></div>
             {s.current ? <span className="pill-green">Cette session</span>
               : <button className="btn-outline h-8 text-xs" onClick={async () => { await send(`/auth/sessions/${s.session_id}`, "DELETE"); load(); }} data-testid={`session-revoke-${s.session_id}`}>Révoquer</button>}
           </div>

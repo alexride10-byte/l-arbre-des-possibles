@@ -106,9 +106,9 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
         ))}
       </nav>
       <div className="ml-auto flex items-center gap-2">
-        <SearchBox />
-        <button className="btn-ai" onClick={() => openAssistant()} data-testid="open-assistant-button"><Sparkles size={16} /><span className="hidden sm:inline">Assistant IA</span></button>
-        <Notifications />
+        {user.role !== "internal" && <SearchBox />}
+        {user.role !== "internal" && <button className="btn-ai" onClick={() => openAssistant()} data-testid="open-assistant-button"><Sparkles size={16} /><span className="hidden sm:inline">Assistant IA</span></button>}
+        {user.role !== "internal" && <Notifications />}
         <SettingsMenu />
         {user.picture ? <img src={user.picture} alt={user.name} className="h-9 w-9 rounded-full border border-border" data-testid="user-avatar" />
           : <span className="grid h-9 w-9 place-items-center rounded-full bg-muted text-sm" data-testid="user-avatar">{user.name[0]}</span>}

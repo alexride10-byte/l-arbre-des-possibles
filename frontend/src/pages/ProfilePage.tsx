@@ -9,7 +9,8 @@ import { SharePanel } from "@/components/layout/SharePanel";
 import { AvatarStudio } from "@/components/layout/AvatarStudio";
 
 export default function ProfilePage() {
-  const { child, profiles, selectChild, saveChild, reloadProfiles, user } = useApp();
+  const { child, profiles, selectChild, saveChild, reloadProfiles, user, canWrite } = useApp();
+  const [err, setErr] = useState("");
   const [form, setForm] = useState({ name: "", age: 8, grade: "", notes: "" });
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [newKid, setNewKid] = useState({ name: "", age: 6, grade: "" });
@@ -17,7 +18,7 @@ export default function ProfilePage() {
   useEffect(() => { if (child) setForm({ name: child.name, age: child.age, grade: child.grade, notes: child.notes }); }, [child?.child_id]);
   if (!child) return null;
 
-  const save = async () => { saveChild(await send<Child>(`/children/${child.child_id}`, "PUT", form)); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+  const save = async () => { setErr(""); try { saveChild(await send<Child>(`/children/${child.child_id}`, "PUT", form)); setSaved(true); setTimeout(() => setSaved(false), 1800); } catch (e) { setErr((e as Error).message); } };
   const create = async (e: React.FormEvent) => {
     e.preventDefault(); if (!newKid.name.trim()) return;
     const c = await send<Child>("/children", "POST", { ...newKid, notes: "" });
@@ -46,7 +47,9 @@ export default function ProfilePage() {
           <label className="text-xs text-muted-foreground">Classe / niveau<input className="field mt-1" value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} data-testid="profile-grade-input" /></label>
         </div>
         <label className="block text-xs text-muted-foreground">Notes de contexte<textarea rows={4} className="field mt-1" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} data-testid="profile-notes-input" /></label>
-        <button className="btn-primary" onClick={save} data-testid="profile-save-button"><Save size={15} /> {saved ? "Enregistré ✓" : "Enregistrer"}</button>
+        {!canWrite && <p className="text-xs text-amber-200" data-testid="profile-readonly">Accès en lecture seule (direction).</p>}
+        {err && <p className="text-xs text-red-300" data-testid="profile-error">{err}</p>}
+        {canWrite && <button className="btn-primary" onClick={save} data-testid="profile-save-button"><Save size={15} /> {saved ? "Enregistré ✓" : "Enregistrer"}</button>}
       </section>
       <section className="panel space-y-4 p-6">
         <h2 className="font-display text-xl font-semibold">Profils suivis</h2>
@@ -62,7 +65,7 @@ export default function ProfilePage() {
             </li>
           ))}
         </ul>
-        <form onSubmit={create} className="space-y-2 border-t border-border pt-4" data-testid="new-profile-form">
+        {(user.role === "admin" || user.role === "educator") && <form onSubmit={create} className="space-y-2 border-t border-border pt-4" data-testid="new-profile-form">
           <p className="text-sm font-semibold">Nouveau profil</p>
           <input className="field" placeholder="Prénom" value={newKid.name} onChange={(e) => setNewKid({ ...newKid, name: e.target.value })} data-testid="new-profile-name-input" />
           <div className="grid grid-cols-2 gap-2">
@@ -70,7 +73,7 @@ export default function ProfilePage() {
             <input className="field" placeholder="Classe" value={newKid.grade} onChange={(e) => setNewKid({ ...newKid, grade: e.target.value })} data-testid="new-profile-grade-input" />
           </div>
           <button className="btn-outline w-full" type="submit" data-testid="new-profile-submit"><Plus size={15} /> Ajouter le profil</button>
-        </form>
+        </form>}
       </section>
       <div className="xl:col-span-1"><AvatarStudio /></div>
       <div><SharePanel /></div>

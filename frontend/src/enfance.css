@@ -192,7 +192,7 @@ body { -webkit-font-smoothing: antialiased; }
 .activity-card:hover { border-color: var(--c); transform: translateY(-2px); }
 .activity-thumb { width: 64px; height: 52px; flex-shrink: 0; border-radius: 9px; background-size: cover; background-position: center; }
 
-.future-hero { position: relative; display: flex; min-height: 380px; align-items: flex-start; justify-content: center; padding-top: 2.5rem; border-radius: 16px; overflow: hidden; background-size: cover; background-position: center 60%; border: 1px solid rgba(251, 191, 36, .25); transition: filter .5s; }
+.future-hero { position: relative; display: flex; min-height: 380px; align-items: flex-start; justify-content: flex-start; padding: 1.5rem; border-radius: 16px; overflow: hidden; background-size: cover; background-position: center 60%; border: 1px solid rgba(251, 191, 36, .25); transition: filter .5s; }
 .future-keys { position: absolute; right: 1.25rem; bottom: 1.25rem; width: 270px; padding: 1rem; border-radius: 14px; background: rgba(8, 13, 32, .82); backdrop-filter: blur(14px); border: 1px solid var(--border); }
 
 .overview-row { display: flex; width: 100%; align-items: center; gap: .6rem; padding: .4rem .5rem; border-radius: 9px; border: 1px solid transparent; transition: background-color .2s, border-color .2s; }

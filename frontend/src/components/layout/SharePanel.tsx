@@ -9,13 +9,13 @@ export function SharePanel() {
   const [role, setRole] = useState<"parent" | "pro">("parent");
   const [error, setError] = useState("");
   if (!child) return null;
-  const owner = child.user_id === user.user_id;
+  const owner = child.user_id === user.user_id || user.role === "admin";
   const base = `/children/${child.child_id}/shares`;
 
   if (!owner) return (
     <section className="panel space-y-2 p-5" data-testid="share-panel">
-      <h2 className="flex items-center gap-2 font-display text-xl font-semibold"><Share2 size={17} /> Profil partagé</h2>
-      <p className="text-sm text-muted-foreground">Ce profil vous est partagé par <b className="text-foreground">{child.owner_name}</b>. Vous pouvez observer, évaluer et suivre les quêtes ensemble.</p>
+      <h2 className="flex items-center gap-2 font-display text-xl font-semibold"><Share2 size={17} /> Accès au dossier</h2>
+      <p className="text-sm text-muted-foreground">{child.access === "readonly" ? "Accès direction en lecture seule : consultation des dossiers sans modification." : child.access === "assigned" ? "Ce dossier vous a été attribué par la structure. Vous pouvez observer, évaluer et suivre les activités." : <>Ce profil vous est partagé par <b className="text-foreground">{child.owner_name}</b>. Vous pouvez observer, évaluer et suivre les quêtes ensemble.</>}</p>
     </section>
   );
   const add = async (e: React.FormEvent) => {

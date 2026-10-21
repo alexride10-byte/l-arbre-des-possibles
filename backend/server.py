@@ -108,7 +108,16 @@ async def audit(user: Optional[dict], action: str, child_id: Optional[str] = Non
     await db.audit_logs.insert_one({
         "log_id": uuid.uuid4().hex, "at": now_iso(), "action": action, "child_id": child_id, "detail": detail[:300],
         "user_id": (user or {}).get("user_id"), "user_email": (user or {}).get("email"), "role": (user or {}).get("role"),
-        "ip": request.client.host if request and request.client else None})
+        "ip": client_ip(request) if request else None})
+
+
+def client_ip(request: Request) -> Optional[str]:
+    fwd = request.headers.get("x-forwarded-for", "")
+    return fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else None)
+
+
+async def fetch_child(child_id: str) -> dict:
+    return await db.children.find_one({"child_id": child_id}, {"_id": 0})
 
 
 def read_token(request: Request) -> Optional[str]:
@@ -154,7 +163,7 @@ async def open_session(response: Response, user_id: str, request: Request, token
     token = token or secrets.token_urlsafe(32)
     await db.user_sessions.insert_one({"session_id": uuid.uuid4().hex[:12], "user_id": user_id, "session_token": token,
                                        "expires_at": datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS), "created_at": now_iso(),
-                                       "user_agent": request.headers.get("user-agent", "")[:160], "ip": request.client.host if request.client else None})
+                                       "user_agent": request.headers.get("user-agent", "")[:160], "ip": client_ip(request)})
     response.set_cookie("session_token", token, httponly=True, secure=True, samesite="none", path="/", max_age=SESSION_DAYS * 24 * 3600)
     return token
 
@@ -243,9 +252,11 @@ async def resend_verification(body: EmailIn):
 @api.post("/auth/login")
 async def login(body: LoginIn, request: Request, response: Response):
     email = body.email.lower().strip()
-    ident = f"{request.client.host if request.client else ''}:{email}"
+    ident = f"email:{email}"
     att = await db.login_attempts.find_one({"identifier": ident}, {"_id": 0})
-    if att and att.get("count", 0) >= 5 and datetime.fromisoformat(att["last"]) > datetime.now(timezone.utc) - timedelta(minutes=15):
+    if att and datetime.fromisoformat(att["last"]) < datetime.now(timezone.utc) - timedelta(minutes=15):
+        await db.login_attempts.delete_one({"identifier": ident})
+    elif att and att.get("count", 0) >= 5:
         raise HTTPException(429, "Trop de tentatives. Réessayez dans 15 minutes.")
     user = await db.users.find_one({"email": email}, {"_id": 0})
     if not user or not user.get("password_hash") or not verify_password(body.password, user["password_hash"]):
@@ -461,9 +472,10 @@ async def list_children(request: Request):
     q = {} if role in ("admin", "direction") else {"$or": [{"user_id": user["user_id"]}, {"assigned": user["user_id"]}, {"shares.email": user["email"].lower()}]}
     kids = await db.children.find(q, {"_id": 0}).sort("created_at", 1).to_list(200)
     for k in kids:
-        if k["user_id"] != user["user_id"]:
+        if user["email"].lower() in [x["email"] for x in k.get("shares", [])] and k["user_id"] != user["user_id"]:
             owner = await db.users.find_one({"user_id": k["user_id"]}, {"_id": 0, "name": 1})
             k["owner_name"] = (owner or {}).get("name", "Structure")
+        k["access"] = "owner" if k["user_id"] == user["user_id"] else "readonly" if role == "direction" else "assigned" if user["user_id"] in k.get("assigned", []) else "structure" if role == "admin" else "shared"
     return kids
 
 
@@ -491,7 +503,7 @@ async def update_child(child_id: str, body: ChildPatch, request: Request):
     patch = body.model_dump(exclude_none=True)
     if patch:
         await db.children.update_one({"child_id": child_id}, {"$set": patch})
-    return (await get_child(request, child_id))[1]
+    return await fetch_child(child_id)
 
 
 @api.delete("/children/{child_id}")
@@ -512,7 +524,7 @@ async def set_level(child_id: str, body: LevelIn, request: Request):
     entry = {"domain_id": body.domain_id, "from": prev, "to": body.level, "date": now_iso()}
     await db.children.update_one({"child_id": child_id},
                                  {"$set": {f"levels.{body.domain_id}": body.level}, "$push": {"level_history": entry}})
-    return (await get_child(request, child_id))[1]
+    return await fetch_child(child_id)
 
 
 @api.put("/children/{child_id}/quests/{quest_id}/steps/{idx}")
@@ -524,7 +536,7 @@ async def set_step(child_id: str, quest_id: str, idx: int, body: StepIn, request
     await db.children.update_one({"child_id": child_id}, {
         "$set": {f"quest_steps.{key}": {"status": body.status, "date": now_iso()}},
         "$inc": {"xp": delta}})
-    return (await get_child(request, child_id))[1]
+    return await fetch_child(child_id)
 
 
 # ---------- Observations ----------
@@ -598,7 +610,7 @@ async def add_share(child_id: str, body: ShareIn, request: Request):
         raise HTTPException(400, "Vous êtes déjà propriétaire de ce profil")
     shares = [x for x in child.get("shares", []) if x["email"] != email] + [{"email": email, "role": body.role, "date": now_iso()}]
     await db.children.update_one({"child_id": child_id}, {"$set": {"shares": shares}})
-    return (await get_child(request, child_id))[1]
+    return await fetch_child(child_id)
 
 
 @api.delete("/children/{child_id}/shares/{email}")
@@ -606,7 +618,7 @@ async def remove_share(child_id: str, email: str, request: Request):
     _, child = await get_owned_child(request, child_id)
     shares = [x for x in child.get("shares", []) if x["email"] != email.lower()]
     await db.children.update_one({"child_id": child_id}, {"$set": {"shares": shares}})
-    return (await get_child(request, child_id))[1]
+    return await fetch_child(child_id)
 
 
 # ---------- Quêtes personnalisées ----------
@@ -643,7 +655,7 @@ async def store_quest(child_id: str, q: QuestIn) -> dict:
 async def save_quest(child_id: str, body: QuestIn, request: Request):
     await get_child(request, child_id)
     await store_quest(child_id, body)
-    return (await get_child(request, child_id))[1]
+    return await fetch_child(child_id)
 
 
 @api.post("/children/{child_id}/quests/generate")
@@ -663,7 +675,7 @@ async def generate_quest(child_id: str, body: QuestGenIn, request: Request):
     except Exception:
         raise HTTPException(502, "L'IA n'a pas renvoyé une quête exploitable, réessayez.")
     await store_quest(child_id, quest)
-    return (await get_child(request, child_id))[1]
+    return await fetch_child(child_id)
 
 
 @api.delete("/children/{child_id}/quests/{quest_id}")
@@ -675,7 +687,7 @@ async def delete_quest(child_id: str, quest_id: str, request: Request):
     if keys:
         update["$unset"] = {f"quest_steps.{k}": "" for k in keys}
     await db.children.update_one({"child_id": child_id}, update)
-    return (await get_child(request, child_id))[1]
+    return await fetch_child(child_id)
 
 
 @api.get("/children/{child_id}/assistant")
@@ -752,7 +764,7 @@ async def generate_avatar(child_id: str, body: AvatarGenIn, request: Request):
     url = f"/api/avatars/{avatar_id}"
     await db.children.update_one({"child_id": child_id}, {"$set": {"avatar.portrait": url},
                                  "$push": {"avatar_history": {"url": url, "date": now_iso(), "xp": child["xp"]}}})
-    return (await get_child(request, child_id))[1]
+    return await fetch_child(child_id)
 
 
 @api.get("/avatars/{avatar_id}")

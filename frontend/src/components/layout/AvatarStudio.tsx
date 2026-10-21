@@ -64,7 +64,7 @@ export function AvatarStudio() {
           <p className="text-sm text-muted-foreground">Mon avatar évolue : il se transforme et se débloque au fil des progrès (niveau actuel {xpLevel(child.xp).level}).</p>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {[...history.map((h) => ({ url: h.url, lvl: xpLevel(h.xp).level })), ...(history.length ? [] : [{ url: child.avatar.portrait ?? "", lvl: xpLevel(child.xp).level }])].map((h, i) => (
-              <button key={i} onClick={() => h.url && pick(h.url)} className={`avatar-tile w-28 shrink-0 ${child.avatar.portrait === h.url ? "avatar-tile-on" : ""}`} data-testid={`avatar-history-${i}`}>
+              <button key={i} disabled={!canWrite} onClick={() => h.url && pick(h.url)} className={`avatar-tile w-28 shrink-0 ${child.avatar.portrait === h.url ? "avatar-tile-on" : ""}`} data-testid={`avatar-history-${i}`}>
                 {portraitSrc(h.url) ? <img src={portraitSrc(h.url)!} alt="" /> : <Portrait avatar={child.avatar} />}<span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 text-[10px]">Niveau {h.lvl}</span>
               </button>
             ))}

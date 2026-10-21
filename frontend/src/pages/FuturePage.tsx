@@ -17,7 +17,7 @@ export default function FuturePage() {
   return (
     <div className="page space-y-4" data-testid="future-page">
       <section className="future-hero" style={{ backgroundImage: `url(${FUTURE})`, filter: scenario === "risque" ? "saturate(.55)" : undefined }}>
-        <div className="text-center"><h1 className="font-display text-4xl font-bold drop-shadow-lg">Explorer son futur possible</h1>
+        <div className="rounded-2xl bg-gradient-to-b from-black/60 to-black/20 px-6 py-3 text-center backdrop-blur-[2px]"><h1 className="font-display text-4xl font-bold drop-shadow-lg">Explorer son futur possible</h1>
           <p className="text-sm text-slate-200">Une visualisation inspirante basée sur ses progrès actuels. Illustrative, jamais prédictive.</p></div>
         <aside className="future-keys" data-testid="future-keys">
           <p className="mb-2 text-sm font-semibold">Les clés de son futur</p>
