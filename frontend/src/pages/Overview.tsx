@@ -20,7 +20,7 @@ const MODES: [Mode, string, typeof Eye][] = [["actuelle", "Vue actuelle", Eye], 
 export default function Overview({ fullTree = false }: { fullTree?: boolean }) {
   const app = useApp();
   const { child, focus, node, frag, factorId, hidden, mode, setMode, scenario, horizon, back, openDomain, openNode, openFrag, setFactorId } = app;
-  const [detail, setDetail] = useState(2);
+  const [detail, setDetail] = useState(() => (window.innerWidth < 768 ? 1 : 2));
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === "Escape") back(); };
     window.addEventListener("keydown", k);

@@ -31,6 +31,9 @@ Application psychologique sur le développement de l'enfant, style RPG (maquette
 ## Itération 4 (2026-10-21) — Messagerie sécurisée
 - Fils privés entre professionnels (/messages), liés ou non au dossier d'un enfant ; accès re-vérifié à chaque lecture (participants + droit sur le dossier), journalisé (création, lecture, envoi) ; badge non-lus (polling 30 s), conversation rafraîchie toutes les 10 s ; fil de démo seedé
 
+## Itération 5 (2026-10-21) — Arbre peint
+- Fond de l'arbre = illustration manga peinte (arbre multicolore + enfant au pied), intégrée dans la caméra SVG (zoom), arbre vectoriel masqué (prop painted), médaillons/chips/défis interactifs par-dessus, fond flou latéral, contours de lisibilité
+
 ## Backlog
 - P0 (étape 2): calendrier/rendez-vous ; temps réel (websockets) et pièces jointes pour la messagerie
 - P1: vrai envoi d'e-mails (Resend), anonymisation renforcée des données de démo, avatars servis avec authentification
