@@ -907,6 +907,9 @@ async def image_b64(src: str) -> str:
 @api.post("/children/{child_id}/tree/generate")
 async def generate_tree(child_id: str, request: Request):
     _, child = await get_child(request, child_id)
+    recent = await db.avatars.find_one({"child_id": child_id, "kind": "tree"}, {"_id": 0, "created_at": 1})
+    if recent and datetime.fromisoformat(recent["created_at"]) > datetime.now(timezone.utc) - timedelta(seconds=60):
+        raise HTTPException(429, "Patientez une minute avant de repeindre l'arbre.")
     portrait = (child.get("avatar") or {}).get("portrait")
     if not portrait:
         raise HTTPException(400, "Choisissez d'abord un avatar manga pour l'enfant")
@@ -926,6 +929,7 @@ async def generate_tree(child_id: str, request: Request):
     if not images:
         raise HTTPException(502, "Aucune image générée, réessayez.")
     img_id = uuid.uuid4().hex
+    await db.avatars.delete_many({"child_id": child_id, "kind": "tree"})
     await db.avatars.insert_one({"avatar_id": img_id, "child_id": child_id, "mime": images[0]["mime_type"], "data": images[0]["data"], "kind": "tree", "created_at": now_iso()})
     await db.children.update_one({"child_id": child_id}, {"$set": {"tree_image": f"/api/avatars/{img_id}"}})
     return await fetch_child(child_id)
@@ -935,6 +939,7 @@ async def generate_tree(child_id: str, request: Request):
 async def reset_tree(child_id: str, request: Request):
     await get_child(request, child_id)
     await db.children.update_one({"child_id": child_id}, {"$unset": {"tree_image": ""}})
+    await db.avatars.delete_many({"child_id": child_id, "kind": "tree"})
     return await fetch_child(child_id)
 
 

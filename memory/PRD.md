@@ -34,6 +34,10 @@ Application psychologique sur le développement de l'enfant, style RPG (maquette
 ## Itération 5 (2026-10-21) — Arbre peint
 - Fond de l'arbre = illustration manga peinte (arbre multicolore + enfant au pied), intégrée dans la caméra SVG (zoom), arbre vectoriel masqué (prop painted), médaillons/chips/défis interactifs par-dessus, fond flou latéral, contours de lisibilité
 
+## Itération 6 (2026-10-21) — Arbre personnalisé + progression 12 mois
+- POST /children/{id}/tree/generate : Nano Banana édite l'arbre de base avec le portrait de l'enfant (composition conservée), stockage db.avatars kind=tree (ancien supprimé, anti-spam 60 s), DELETE pour revenir à l'arbre de base ; bouton « Peindre l'arbre de … » dans l'en-tête de l'arbre
+- Graphique « Progression par domaine » (12 mois, depuis level_history) à côté des trajectoires ; historique fictif seedé pour les enfants de démo
+
 ## Backlog
 - P0 (étape 2): calendrier/rendez-vous ; temps réel (websockets) et pièces jointes pour la messagerie
 - P1: vrai envoi d'e-mails (Resend), anonymisation renforcée des données de démo, avatars servis avec authentification
