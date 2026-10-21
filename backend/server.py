@@ -861,12 +861,13 @@ async def create_thread(body: ThreadIn, request: Request):
 
 
 @api.get("/messages/threads/{tid}")
-async def read_thread(tid: str, request: Request):
+async def read_thread(tid: str, request: Request, poll: bool = False):
     user = await current_user(request)
     t = await thread_for(user, tid)
     msgs = await db.thread_messages.find({"thread_id": tid}, {"_id": 0}).sort("created_at", 1).to_list(1000)
     await db.threads.update_one({"thread_id": tid}, {"$set": {f"read_by.{user['user_id']}": now_iso()}})
-    await audit(user, "message.thread_read", t.get("child_id"), tid, request)
+    if not poll:
+        await audit(user, "message.thread_read", t.get("child_id"), tid, request)
     t.pop("read_by", None)
     return {"thread": t, "messages": msgs}
 

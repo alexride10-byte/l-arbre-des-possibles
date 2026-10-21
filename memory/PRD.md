@@ -28,8 +28,11 @@ Application psychologique sur le développement de l'enfant, style RPG (maquette
 - Rôles : admin structure, éducateur (dossiers attribués), direction (lecture seule), équipe interne (stats agrégées seulement), inscription en attente de validation, attribution des dossiers, journal des accès (/admin)
 - Avatars : galerie, « Générer mon avatar » (Gemini Nano Banana), onglet Évolution
 
+## Itération 4 (2026-10-21) — Messagerie sécurisée
+- Fils privés entre professionnels (/messages), liés ou non au dossier d'un enfant ; accès re-vérifié à chaque lecture (participants + droit sur le dossier), journalisé (création, lecture, envoi) ; badge non-lus (polling 30 s), conversation rafraîchie toutes les 10 s ; fil de démo seedé
+
 ## Backlog
-- P0 (étape 2): messagerie sécurisée entre professionnels, calendrier/rendez-vous
+- P0 (étape 2): calendrier/rendez-vous ; temps réel (websockets) et pièces jointes pour la messagerie
 - P1: vrai envoi d'e-mails (Resend), anonymisation renforcée des données de démo, avatars servis avec authentification
 - P1: notifications/invitations par e-mail pour le partage ; export PDF mis en forme ; intégration institutionnelle SOS Villages d'Enfants
 - P2: synchronisation des profils en mode 100% local ; mobile plus soigné

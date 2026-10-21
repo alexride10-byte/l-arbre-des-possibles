@@ -45,8 +45,8 @@ function Conversation({ id, onChange }: { id: string; onChange: () => void }) {
   const [text, setText] = useState("");
   const [err, setErr] = useState("");
   const end = useRef<HTMLDivElement>(null);
-  const load = () => api<{ thread: Thread; messages: Msg[] }>(`/messages/threads/${id}`).then(setData).catch((e) => setErr(e.message));
-  useEffect(() => { load().then(onChange); const t = setInterval(load, 10000); return () => clearInterval(t); }, [id]);
+  const load = (poll = false) => api<{ thread: Thread; messages: Msg[] }>(`/messages/threads/${id}${poll ? "?poll=true" : ""}`).then((d) => { setData(d); setErr(""); }).catch((e) => setErr(e.message));
+  useEffect(() => { load().then(onChange); const t = setInterval(() => load(true), 10000); return () => clearInterval(t); }, [id]);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth" }); }, [data?.messages.length]);
   const post = async (e: React.FormEvent) => {
     e.preventDefault(); if (!text.trim()) return;
@@ -87,7 +87,7 @@ export default function MessagesPage() {
   const [compose, setCompose] = useState(false);
   const [onlyChild, setOnlyChild] = useState(false);
   const load = () => api<Thread[]>(`/messages/threads${onlyChild && child ? `?child_id=${child.child_id}` : ""}`).then((t) => { setThreads(t); window.dispatchEvent(new Event("messages-read")); });
-  useEffect(() => { load(); }, [onlyChild, child?.child_id]);
+  useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [onlyChild, child?.child_id]);
   return (
     <div className="page grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]" data-testid="messages-page">
       <section className="panel flex min-h-[70vh] flex-col overflow-hidden">

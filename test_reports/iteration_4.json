@@ -1,0 +1,41 @@
+{
+  "summary": "Iteration 4 - Messagerie sécurisée. Backend: 14/14 pytest pass (contacts incl. child filtering, create-thread validation 400/403/404/422, participant-only listing/reading (404 for non-participants), unread counts + read marking, /messages/unread total, append messages, un-assign -> 403 + hidden from list then restored, audit entries thread_create/thread_read/send, 401 unauthenticated). Iteration 3 regression suite 15/15 pass. Frontend: educator opens seeded th_seed_leo, replies, filter tabs, new-thread form (link checkbox default on, chips filtered to Léo-access users, submit disabled w/o recipient) creates thread shown in list; admin badge shown (3) and cleared after opening the thread; internal user sees /messages, no threads, no link-child checkbox; /admin, /enfants, overview load.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/messages/threads/{id}", "issue": "Each 10s poll of an open conversation writes a 'message.thread_read' audit entry -> audit log flooding (~360 entries/hour per open tab), drowning meaningful entries in /admin/audit (limit 200)."},
+      {"endpoint": "GET /api/messages/threads & /api/messages/unread", "issue": "N+1: one fetch_child + one count_documents per thread on every call (unread polled every 30s by every client). Fine for MVP, will not scale."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Conversation polling", "issue": "Thread list (left column, unread dots, last_text) is not polled; only the open conversation refreshes every 10s, so new threads/messages in other threads only show after navigation. Also once thread-error is set (e.g. 403 after un-assign) it never clears.", "affected_selectors": ["[data-testid^='thread-th_']", "thread-error"]}
+    ],
+    "design_issues": [
+      {"screen": "/messages as internal user", "issues": ["Left sidebar panel renders as an empty card (no child context) - should be hidden or collapsed for internal role"]},
+      {"screen": "Child sidebar", "issues": ["'Messagerie' uses the same Users icon as 'Personnes ressources' - use MessagesSquare for consistency with topnav"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter4_messages.py", "/app/test_reports/pytest/pytest_iter4.xml"],
+  "action_items": [
+    "Avoid logging message.thread_read on every 10s poll (e.g. log only when unread>0 / first open, or dedupe per user+thread per N minutes, or add ?poll=1)",
+    "Optionally poll the thread list too (or refresh it on the 10s conversation poll) so unread dots/last messages update",
+    "Hide the empty left sidebar for internal users on /messages",
+    "Minor: change Messagerie sidebar icon"
+  ],
+  "critical_code_review_comments": [
+    "thread_for: participant check before child check correctly returns 404 for non-participants, 403 for lost child access - OK",
+    "Contacts endpoint excludes email/password_hash - OK; pending/revoked users excluded via status=active - OK",
+    "Thread participants are frozen at creation; if a participant is later revoked/deactivated they remain in participant_names (acceptable, but consider showing status)",
+    "No delete/archive endpoint for threads; deleting a child leaves linked threads orphaned (they are hidden since fetch_child returns None, but data remains)"
+  ],
+  "updated_files": ["/app/backend/tests/test_iter4_messages.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "flaky_tests": ["One run had a transient Cloudflare 502 on /api/auth/login coinciding with a backend hot-reload; rerun passed 14/14"],
+  "test_credentials": "From /app/memory/test_credentials.md (admin/educateur/direction/interne/attente)",
+  "seed_data_creation": "None persistent. TEST_iter4* threads/messages removed; th_seed_leo last_* fields reset to latest real message; seed_leo assigned restored to ['seed_educ']. Note: the UI test thread was briefly sent to the product-owner admin (user_2ceae8f60edb) and then deleted.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && export $(grep -v '^#' .env | xargs) && REACT_APP_BACKEND_URL=... pytest tests/test_iter4_messages.py. Test needs AUTH_ENABLED=true and mongo access for cleanup. Login form uses input[type=email]/[type=password] + Enter. Admin unread badge counts all of admin's threads."
+}

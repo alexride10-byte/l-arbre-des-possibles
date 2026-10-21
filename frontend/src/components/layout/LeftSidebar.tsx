@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { LayoutDashboard, Sprout, Gem, AlertTriangle, Workflow, Trees, FileText, UsersRound, Network, Clock, Clock4, GitCompare, Pencil } from "lucide-react";
+import { MessagesSquare, LayoutDashboard, Sprout, Gem, AlertTriangle, Workflow, Trees, FileText, UsersRound, Network, Clock, Clock4, GitCompare, Pencil } from "lucide-react";
 import { useApp, type Mode } from "@/context/AppContext";
 import { DOMAINS } from "@/data/domains";
 import { DOMAIN_ICON, domainColor } from "@/lib/icons";
@@ -23,7 +23,7 @@ export function LeftSidebar({ onNavigate }: { onNavigate?: () => void }) {
     ["Profil & avatar", Pencil, () => go("/profil"), pathname === "/profil"],
     ["Environnement", Trees, () => go("/", () => openDomain("environnement")), false],
     ["Documents", FileText, () => go("/documents"), pathname === "/documents"],
-    ["Messagerie", UsersRound, () => go("/messages"), pathname === "/messages"],
+    ["Messagerie", MessagesSquare, () => go("/messages"), pathname === "/messages"],
     ["Personnes ressources", UsersRound, () => go("/ressources"), pathname === "/ressources"],
   ] as const;
   const views: [string, typeof Network, () => void, boolean][] = [
