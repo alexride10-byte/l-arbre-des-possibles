@@ -36,6 +36,11 @@ Chaque `git push` sur GitHub redéploie automatiquement les deux services.
 - **Android** : menu ⋮ → « Installer l'application ».
 - **iPhone / iPad** : Safari → Partager → « Sur l'écran d'accueil ».
 
+## Vérifié avant publication
+- Installation du serveur depuis zéro (`pip install -r backend/requirements.txt`, Python 3.11) : OK. Le serveur démarre et répond sur `/api/`.
+- Compilation du site depuis zéro (`yarn install --frozen-lockfile && yarn build`, Node 20) : OK.
+- Les versions Python 3.11 et Node 20 sont fixées dans `render.yaml`. Les fichiers `.env` ne partent pas sur GitHub : les valeurs se saisissent dans Render.
+
 ## Bon à savoir
 - L'offre gratuite de Render met le serveur en veille : la première ouverture de l'espace pro peut prendre ~30 s. Le launcher, lui, s'affiche immédiatement (il n'utilise pas le serveur).
 - `EMAIL_MODE=simulated` : les e-mails de vérification sont simulés.

@@ -1,0 +1,45 @@
+{
+  "summary": "Iteration 9: tested shared calendar (events CRUD + RBAC), monthly report, admin roots/factor content editing, 14-day note reminders, audit labels, plus regressions. Backend: 15/15 new pytest pass (iter8 suite 11/11 after updating one outdated test). Frontend: all requested flows work end-to-end for educator/direction/admin. Login manga hero unchanged, overview tree loads; only console errors are expected pre-login 401s (+ intentional 400/403 during negative tests). One functional UI gap: direction can open an event in an editable form (Save/Delete buttons shown; backend correctly returns 403). Minor design issues on calendar/report headers.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/children/{cid}/events/{eid}", "issue": "Returns 200 {ok:true} even when event does not exist (no 404)."},
+      {"endpoint": "PUT/DELETE events", "issue": "No audit entry for event create/update/delete beyond generic get_child method audit; fine but no 'event.*' action labels in Historique."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CalendarPage EventForm (direction role)", "issue": "Direction (read-only) clicking an event opens 'Modifier le rendez-vous' with editable fields + Enregistrer + Supprimer. Save shows 'Accès en lecture seule pour la direction' (403). Delete has no try/catch -> unhandled promise rejection, silent failure. Should render read-only details (no save/delete) when !canWrite.", "selector": "[data-testid='event-save-button'], [data-testid='event-delete-button']", "priority": "MEDIUM"},
+      {"component": "ReportPage header", "issue": "report-month-label has 'capitalize' class -> renders 'Octobre 2026 · 6 Ans · CP' ('Ans' capitalised). Capitalise only the month.", "selector": "[data-testid='report-month-label']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/calendrier", "issues": ["calendar-child-filter select stretches full width (the .field w-full overrides w-48), pushing prev/next and 'Rendez-vous' button to a second row.", "Event form uses native browser date/time pickers (input type=date/time) instead of themed shadcn calendar; shows US format 10/05/2026 09:00 AM in en locale."]},
+      {"screen": "/rapport", "issues": ["report-month-input stretches full width; print button wraps to next row. Native month picker."]},
+      {"screen": "Overview (all roles with reminders)", "issues": ["reminder-banner is fixed bottom-right z-40 and overlaps the 'Aperçu du futur possible' card and the Progression legend until dismissed."]},
+      {"screen": "Overview painted tree", "issues": ["Root labels (text.root-label) are not rendered in painted mode, so renamed roots are only visible in fragility 'Contextes à considérer' chips and factor 'Contexte :' line, not on the tree itself."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter9_calendar_reminders_roots.py", "/app/backend/tests/test_iter8_admin_content_notes.py", "/app/test_reports/pytest/pytest_iter9.xml"],
+  "action_items": [
+    "CalendarPage: when !canWrite, show event details read-only (hide event-save-button / event-delete-button, disable inputs); wrap remove() in try/catch and show event-error.",
+    "ReportPage: remove 'capitalize' from the whole label (apply only to month) to avoid '6 Ans'.",
+    "Fix widths of calendar-child-filter and report-month-input (w-48 not applied because .field sets w-full).",
+    "Consider moving/shrinking reminder-banner so it does not cover dashboard cards.",
+    "Optional: DELETE event should 404 when event not found."
+  ],
+  "critical_code_review_comments": [
+    "Event update/delete allow any team member (not only creator) — acceptable for a shared team calendar but confirm intent.",
+    "content.ts: resetting a factor (Object.assign with defaultOf) restores the default 'context' root name even if roots are currently renamed, until reload (minor edge case).",
+    "Reminders use string compare of ISO timestamps (works since all created_at are UTC isoformat).",
+    "Report notes month filter uses UTC created_at prefix; notes created near midnight local time could land in the wrong month (minor).",
+    "iter8 test test_save_get_reset used an unknown id (TEST_item) which is now rejected by the CONTENT_IDS whitelist -> updated test to expect 400 and to use f-sommeil."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter9_calendar_reminders_roots.py", "/app/backend/tests/test_iter8_admin_content_notes.py"],
+  "success_rate": {"backend": "100%", "frontend": "92%"},
+  "seed_data_creation": "None persisted. All TEST_ events, notes and content overrides were deleted/reset (verified in DB: 0 events, 0 TEST notes, 0 content docs).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "From /app/memory/test_credentials.md (admin/educateur/direction) — all work.",
+  "context_for_next_testing_agent": "App date in env is Oct 2026. Educator assigned Léo+Maya; reminders: educator sees Maya, admin sees Maya+Noah, direction none. Verified: calendar create via day click, edit, delete (confirm dialog -> use async dialog handler), filter by child, prev/next; direction no add button, day click no-op, API 403; educator 404 on seed_noah. Report: 7 report-domain rows, notes/events of month appear and not in previous month (data loads async — wait ~2s after report-card appears), window.print called. Admin content roots/factor save/reset + content-error on empty root + audit labels ok. Fragility markers have aria-label 'Fragilité : Anxiété'."
+}

@@ -1215,7 +1215,9 @@ async def update_event(child_id: str, event_id: str, body: EventIn, request: Req
 @api.delete("/children/{child_id}/events/{event_id}")
 async def delete_event(child_id: str, event_id: str, request: Request):
     await get_child(request, child_id)
-    await db.events.delete_one({"event_id": event_id, "child_id": child_id})
+    res = await db.events.delete_one({"event_id": event_id, "child_id": child_id})
+    if not res.deleted_count:
+        raise HTTPException(404, "Rendez-vous introuvable")
     return {"ok": True}
 
 

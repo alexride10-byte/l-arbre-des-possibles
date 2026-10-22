@@ -68,8 +68,10 @@ class TestContent:
         assert r.status_code == 400
 
     def test_save_get_reset(self, admin, educ):
-        item = "TEST_item"
-        r = admin.put(f"{BASE_URL}/api/admin/content/fragility/{item}", json={"data": {"intro": "TEST intro"}})
+        # unknown ids are now rejected (whitelist); use a real fragility id with full payload
+        assert admin.put(f"{BASE_URL}/api/admin/content/fragility/TEST_item", json={"data": {"intro": "x"}}).status_code == 400
+        item = "f-sommeil"
+        r = admin.put(f"{BASE_URL}/api/admin/content/fragility/{item}", json={"data": {"id": item, "label": "Sommeil", "intro": "TEST intro"}})
         assert r.status_code == 200 and r.json()["updated_by"]
         docs = educ.get(f"{BASE_URL}/api/content").json()
         d = [x for x in docs if x["item_id"] == item]

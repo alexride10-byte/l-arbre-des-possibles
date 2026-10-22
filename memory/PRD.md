@@ -72,3 +72,7 @@ Application psychologique sur le développement de l'enfant, style RPG (maquette
 - Notes par enfant : collection child_notes, /api/children/{id}/notes CRUD (équipe + admin lisent, auteur/admin modifient, direction lecture) ; ChildNotes sur la page Profil.
 - Historique des actions : libellés français, noms d'enfants, déconnexion tracée.
 - Backlog : Calendrier, Rapports, Notifications ; édition des racines/facteurs.
+
+## 2026-06 — Calendrier, rapport, racines, rappels (iteration 9) + préparation Render
+- Calendrier partagé /calendrier (events: équipe de l'enfant + admin écrivent, direction lecture), rapport mensuel imprimable /rapport, racines (5) + facteurs modifiables (content kinds roots/factor, renommage propagé aux contextes), rappels 14 jours (/api/reminders, bandeau + cloche).
+- Render : requirements.txt réduit aux dépendances directes (l'ancien pip freeze était impossible à installer : conflit litellm), PYTHON_VERSION 3.11.11 + NODE_VERSION 20 dans render.yaml. Install + build vérifiés dans un environnement vierge.

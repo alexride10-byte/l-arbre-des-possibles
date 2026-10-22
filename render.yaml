@@ -7,6 +7,8 @@ services:
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.11"
       - key: MONGO_URL
         sync: false
       - key: DB_NAME
@@ -39,5 +41,7 @@ services:
         source: /*
         destination: /index.html
     envVars:
+      - key: NODE_VERSION
+        value: "20"
       - key: REACT_APP_BACKEND_URL
         sync: false

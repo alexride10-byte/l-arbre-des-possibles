@@ -20,6 +20,7 @@ export function ReminderBanner() {
   const items = useReminders();
   const { selectChild } = useApp();
   const [hidden, setHidden] = useState(() => sessionStorage.getItem("enfanceplus.reminders") === "1");
+  useEffect(() => { const t = setTimeout(() => setHidden(true), 15000); return () => clearTimeout(t); }, []);
   if (!items.length || hidden) return null;
   return (
     <div className="panel fixed bottom-4 right-4 z-40 flex max-w-md flex-wrap items-center gap-3 border-amber-300/40 px-4 py-3 text-sm panel-enter" data-testid="reminder-banner">

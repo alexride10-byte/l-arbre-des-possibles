@@ -43,7 +43,7 @@ export default function ReportPage() {
     <div className="page space-y-4" data-testid="report-page">
       <div className="flex flex-wrap items-center gap-3 print:hidden">
         <h1 className="mr-auto font-display text-2xl font-semibold">Rapport mensuel</h1>
-        <input type="month" className="field h-10 w-48" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} data-testid="report-month-input" />
+        <input type="month" className="field h-10" style={{ width: 190 }} value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} data-testid="report-month-input" />
         <button className="btn-primary" onClick={() => window.print()} data-testid="report-print-button"><Printer size={15} /> Imprimer / PDF</button>
       </div>
       <article className="progress-card print-card mx-auto max-w-3xl space-y-6 p-8" data-testid="report-card">
@@ -52,7 +52,7 @@ export default function ReportPage() {
           <div className="flex-1 space-y-1">
             <p className="text-xs uppercase tracking-[0.25em] text-amber-200/80">Enfance+ · Rapport de suivi</p>
             <h2 className="font-display text-3xl font-bold" data-testid="report-child-name">{child.name}</h2>
-            <p className="text-sm capitalize text-slate-300" data-testid="report-month-label">{label} · {child.age} ans {child.grade && `· ${child.grade}`}</p>
+            <p className="text-sm text-slate-300" data-testid="report-month-label">{label.charAt(0).toUpperCase() + label.slice(1)} · {child.age} ans {child.grade && `· ${child.grade}`}</p>
             <p className="text-[11px] text-slate-400">Document confidentiel — réservé à l'équipe et à la famille. Les éléments décrits sont des observations, pas des diagnostics.</p>
           </div>
           <img src={child.tree_image || PAINTED_TREE} alt="Arbre de vie" className="h-32 w-44 rounded-xl border border-white/10 object-cover" />

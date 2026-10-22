@@ -93,7 +93,7 @@ const CHILD_ACTIONS: Record<string, Record<string, string>> = {
   observations: { POST: "Observation ajoutée", PUT: "Observation modifiée", DELETE: "Observation supprimée" },
   levels: { PUT: "Niveau de domaine modifié" }, quests: { POST: "Activité créée", PUT: "Étape d'activité mise à jour", DELETE: "Activité supprimée" },
   assistant: { POST: "Question à l'assistant IA", DELETE: "Historique IA effacé" }, shares: { POST: "Partage ajouté", DELETE: "Partage retiré" },
-  avatar: { POST: "Avatar généré" }, tree: { POST: "Arbre personnalisé généré", DELETE: "Arbre personnalisé retiré" },
+  avatar: { POST: "Avatar généré" }, events: { POST: "Rendez-vous ajouté", PUT: "Rendez-vous modifié", DELETE: "Rendez-vous supprimé" }, tree: { POST: "Arbre personnalisé généré", DELETE: "Arbre personnalisé retiré" },
 };
 const ROLE_FR: Record<string, string> = { admin: "admin", direction: "direction", educator: "éducateur", internal: "Enfance+" };
 

@@ -11,7 +11,7 @@ const DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const pad = (n: number) => String(n).padStart(2, "0");
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-function EventForm({ draft, onClose, onSaved }: { draft: Draft; onClose: () => void; onSaved: () => void }) {
+function EventForm({ draft, onClose, onSaved, readOnly }: { draft: Draft; onClose: () => void; onSaved: () => void; readOnly: boolean }) {
   const { profiles } = useApp();
   const [d, setD] = useState(draft);
   const [err, setErr] = useState("");
@@ -21,10 +21,14 @@ function EventForm({ draft, onClose, onSaved }: { draft: Draft; onClose: () => v
   const save = async () => {
     try { await send(d.event_id ? `${base}/${d.event_id}` : base, d.event_id ? "PUT" : "POST", body); onSaved(); } catch (e) { setErr((e as Error).message); }
   };
-  const remove = async () => { if (window.confirm("Supprimer ce rendez-vous ?")) { await send(`${base}/${d.event_id}`, "DELETE"); onSaved(); } };
+  const remove = async () => {
+    if (!window.confirm("Supprimer ce rendez-vous ?")) return;
+    try { await send(`${base}/${d.event_id}`, "DELETE"); onSaved(); } catch (e) { setErr((e as Error).message); }
+  };
   return (
     <section className="panel space-y-3 p-5" data-testid="event-form">
-      <div className="flex items-center"><h2 className="mr-auto font-display text-lg font-semibold">{d.event_id ? "Modifier le rendez-vous" : "Nouveau rendez-vous"}</h2>
+      <fieldset disabled={readOnly} className="contents">
+      <div className="flex items-center"><h2 className="mr-auto font-display text-lg font-semibold">{readOnly ? "Détail du rendez-vous" : d.event_id ? "Modifier le rendez-vous" : "Nouveau rendez-vous"}</h2>
         <button className="icon-btn" onClick={onClose} aria-label="Fermer" data-testid="event-form-close"><X size={16} /></button></div>
       <label className="block text-xs text-muted-foreground">Enfant<select className="field mt-1" value={d.child_id} disabled={!!d.event_id} onChange={(e) => set({ child_id: e.target.value })} data-testid="event-child-select">
         {profiles.map((p) => <option key={p.child_id} value={p.child_id}>{p.name}</option>)}</select></label>
@@ -38,11 +42,12 @@ function EventForm({ draft, onClose, onSaved }: { draft: Draft; onClose: () => v
       </div>
       <label className="block text-xs text-muted-foreground">Lieu<input className="field mt-1" value={d.location} onChange={(e) => set({ location: e.target.value })} data-testid="event-location-input" /></label>
       <label className="block text-xs text-muted-foreground">Notes<textarea rows={2} className="field mt-1" value={d.notes} onChange={(e) => set({ notes: e.target.value })} data-testid="event-notes-input" /></label>
+      </fieldset>
       {err && <p className="text-xs text-red-300" data-testid="event-error">{err}</p>}
-      <div className="flex gap-2">
+      {readOnly ? <p className="text-xs text-amber-200" data-testid="event-readonly">Lecture seule · ajouté par {(draft as Partial<CalEvent>).created_by_name}</p> : <div className="flex gap-2">
         <button className="btn-primary" onClick={save} disabled={!d.title.trim()} data-testid="event-save-button"><Save size={15} /> Enregistrer</button>
         {d.event_id && <button className="btn-outline text-red-300" onClick={remove} data-testid="event-delete-button"><Trash2 size={14} /> Supprimer</button>}
-      </div>
+      </div>}
     </section>
   );
 }
@@ -70,7 +75,7 @@ export default function CalendarPage() {
           <span className="medal-lg"><CalendarDays size={20} /></span>
           <div className="mr-auto"><p className="eyebrow">Calendrier partagé</p>
             <h1 className="font-display text-2xl font-semibold capitalize" data-testid="calendar-month">{month.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</h1></div>
-          <select className="field h-10 w-48" value={filter} onChange={(e) => setFilter(e.target.value)} data-testid="calendar-child-filter">
+          <select className="field h-10" style={{ width: 190 }} value={filter} onChange={(e) => setFilter(e.target.value)} data-testid="calendar-child-filter">
             <option value="all">Tous les enfants</option>{profiles.map((p) => <option key={p.child_id} value={p.child_id}>{p.name}</option>)}</select>
           <button className="icon-btn" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} aria-label="Mois précédent" data-testid="calendar-prev"><ChevronLeft size={18} /></button>
           <button className="icon-btn" onClick={() => setMonth(next)} aria-label="Mois suivant" data-testid="calendar-next"><ChevronRight size={18} /></button>
@@ -90,7 +95,7 @@ export default function CalendarPage() {
         </div>
         <div className="flex gap-4 text-xs text-muted-foreground">{Object.values(KINDS).map(([l, c]) => <span key={l} className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full" style={{ background: c }} />{l}</span>)}</div>
       </section>
-      {draft ? <EventForm key={draft.event_id ?? draft.start} draft={draft} onClose={() => setDraft(null)} onSaved={() => { setDraft(null); load(); }} />
+      {draft ? <EventForm key={draft.event_id ?? draft.start} readOnly={!canWrite} draft={draft} onClose={() => setDraft(null)} onSaved={() => { setDraft(null); load(); }} />
         : <section className="panel space-y-2 p-5" data-testid="calendar-upcoming"><h2 className="font-display text-lg font-semibold">Ce mois-ci</h2>
           {events.length === 0 && <p className="text-sm text-muted-foreground">Aucun rendez-vous.</p>}
           {events.map((e) => <button key={e.event_id} className="menu-item" onClick={() => setDraft({ ...e })}><span className="truncate"><b className="text-gold">{new Date(e.start).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} {e.start.slice(11, 16)}</b> {e.title}</span><span className="text-[11px] text-muted-foreground">{e.child_name}</span></button>)}
