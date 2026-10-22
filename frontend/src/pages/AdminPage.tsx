@@ -7,10 +7,12 @@ import { frDate } from "@/lib/icons";
 import { ContentEditor } from "@/components/admin/ContentEditor";
 import { DOMAINS } from "@/data/domains";
 import { FRAGILITIES } from "@/data/fragilities";
+import { FACTORS } from "@/data/factors";
 
 const itemName = (ref: string) => {
   const [kind, id] = ref.split(":");
-  return kind === "domain" ? `domaine « ${DOMAINS.find((d) => d.id === id)?.name ?? id} »` : kind === "fragility" ? `fragilité « ${FRAGILITIES.find((f) => f.id === id)?.label ?? id} »` : ref;
+  return kind === "domain" ? `domaine « ${DOMAINS.find((d) => d.id === id)?.name ?? id} »` : kind === "fragility" ? `fragilité « ${FRAGILITIES.find((f) => f.id === id)?.label ?? id} »`
+    : kind === "factor" ? `facteur « ${FACTORS.find((f) => f.id === id)?.label ?? id} »` : kind === "roots" ? "racines de l'arbre" : ref;
 };
 const detailText = (l: { action: string; detail?: string }) =>
   !l.detail ? "" : l.action.startsWith("content.") ? itemName(l.detail) : l.action === "auth.login" ? `par ${l.detail === "email" ? "e-mail" : l.detail}` : l.detail;

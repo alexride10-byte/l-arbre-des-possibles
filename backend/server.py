@@ -1012,6 +1012,7 @@ async def seed():
     await db.login_attempts.create_index("identifier")
     await db.email_tokens.create_index("token")
     await db.child_notes.create_index("child_id")
+    await db.events.create_index([("child_id", 1), ("start", 1)])
     if not SEED_DEMO:
         return
     email, pwd = os.environ["ADMIN_EMAIL"], os.environ["ADMIN_PASSWORD"]
@@ -1066,7 +1067,8 @@ async def setup(body: SetupIn, request: Request, response: Response):
 
 # ---------- Contenus modifiables ----------
 FRAGILITY_IDS = ["f-anxiete", "f-impulsivite", "f-concentration", "f-sommeil", "f-regulation", "f-conflits"]
-CONTENT_IDS = {"domain": DOMAIN_IDS, "fragility": FRAGILITY_IDS}
+FACTOR_IDS = ["famille", "relations", "ecole", "repos", "evenements", "protection"]
+CONTENT_IDS = {"domain": DOMAIN_IDS, "fragility": FRAGILITY_IDS, "factor": FACTOR_IDS, "roots": ["all"]}
 Txt = Field(min_length=1, max_length=400)
 
 
@@ -1098,6 +1100,25 @@ class FragilityContent(BaseModel):
     interventions: list[str] = []
 
 
+class FactorContent(BaseModel):
+    model_config = {"extra": "ignore"}
+    id: str
+    label: str = Field(min_length=1, max_length=80)
+    description: str = Field(max_length=1000)
+    hypotheses: list[str] = []
+    resources: list[str] = []
+    actions: list[str] = []
+    indicators: list[str] = []
+
+
+class RootsContent(BaseModel):
+    id: str
+    labels: list[str] = Field(min_length=5, max_length=5)
+
+
+CONTENT_MODELS = {"domain": DomainContent, "fragility": FragilityContent, "factor": FactorContent, "roots": RootsContent}
+
+
 class ContentIn(BaseModel):
     data: dict
 
@@ -1119,7 +1140,9 @@ async def save_content(kind: str, item_id: str, body: ContentIn, request: Reques
     require_role(admin, "admin")
     check_content(kind, item_id)
     try:
-        data = (DomainContent if kind == "domain" else FragilityContent)(**body.data).model_dump()
+        data = CONTENT_MODELS[kind](**body.data).model_dump()
+        if kind == "roots" and not all(x.strip() for x in data["labels"]):
+            raise ValueError("vide")
     except ValueError:
         raise HTTPException(400, "Contenu incomplet ou invalide (nom et sous-branches obligatoires)")
     if data["id"] != item_id:
@@ -1138,6 +1161,82 @@ async def reset_content(kind: str, item_id: str, request: Request):
     await db.content.delete_one({"kind": kind, "item_id": item_id})
     await audit(admin, "content.reset", detail=f"{kind}:{item_id}", request=request)
     return {"ok": True}
+
+
+# ---------- Calendrier partagé ----------
+class EventIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    kind: Literal["rdv", "reunion", "autre"] = "rdv"
+    start: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}")
+    duration: int = Field(default=60, ge=5, le=720)
+    location: str = Field(default="", max_length=160)
+    notes: str = Field(default="", max_length=1000)
+
+
+async def readable_child_ids(user: dict) -> Optional[list[str]]:
+    if user.get("role") in ("admin", "direction"):
+        return None
+    return [c["child_id"] for c in await db.children.find({"$or": [{"user_id": user["user_id"]}, {"assigned": user["user_id"]}, {"shares.email": user["email"].lower()}]}, {"child_id": 1}).to_list(500)]
+
+
+@api.get("/events")
+async def list_events(request: Request, child_id: Optional[str] = None, start: Optional[str] = None, end: Optional[str] = None):
+    user = await current_user(request)
+    ids = await readable_child_ids(user)
+    q: dict = {} if ids is None else {"child_id": {"$in": ids}}
+    if child_id:
+        if ids is not None and child_id not in ids:
+            raise HTTPException(404, "Profil introuvable")
+        q["child_id"] = child_id
+    if start or end:
+        q["start"] = {**({"$gte": start} if start else {}), **({"$lt": end} if end else {})}
+    return await db.events.find(q, {"_id": 0}).sort("start", 1).to_list(1000)
+
+
+@api.post("/children/{child_id}/events")
+async def create_event(child_id: str, body: EventIn, request: Request):
+    user, child = await get_child(request, child_id)
+    doc = {"event_id": f"evt_{uuid.uuid4().hex[:12]}", "child_id": child_id, "child_name": child["name"], **body.model_dump(),
+           "created_by": user["user_id"], "created_by_name": user["name"], "created_at": now_iso()}
+    await db.events.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api.put("/children/{child_id}/events/{event_id}")
+async def update_event(child_id: str, event_id: str, body: EventIn, request: Request):
+    await get_child(request, child_id)
+    res = await db.events.update_one({"event_id": event_id, "child_id": child_id}, {"$set": body.model_dump()})
+    if not res.matched_count:
+        raise HTTPException(404, "Rendez-vous introuvable")
+    return await db.events.find_one({"event_id": event_id}, {"_id": 0})
+
+
+@api.delete("/children/{child_id}/events/{event_id}")
+async def delete_event(child_id: str, event_id: str, request: Request):
+    await get_child(request, child_id)
+    await db.events.delete_one({"event_id": event_id, "child_id": child_id})
+    return {"ok": True}
+
+
+# ---------- Rappels de notes ----------
+REMINDER_DAYS = 14
+
+
+@api.get("/reminders")
+async def reminders(request: Request):
+    user = await current_user(request)
+    if user.get("role") not in ("admin", "educator"):
+        return []
+    q = {} if user["role"] == "admin" else {"$or": [{"user_id": user["user_id"]}, {"assigned": user["user_id"]}]}
+    limit = (datetime.now(timezone.utc) - timedelta(days=REMINDER_DAYS)).isoformat()
+    out = []
+    for c in await db.children.find(q, {"_id": 0, "child_id": 1, "name": 1, "created_at": 1}).to_list(500):
+        last = await db.child_notes.find_one({"child_id": c["child_id"]}, {"_id": 0, "created_at": 1}, sort=[("created_at", -1)])
+        ref = last["created_at"] if last else c.get("created_at", "")
+        if ref < limit:
+            out.append({"child_id": c["child_id"], "name": c["name"], "last_note_at": last["created_at"] if last else None})
+    return out
 
 
 # ---------- Notes par enfant ----------

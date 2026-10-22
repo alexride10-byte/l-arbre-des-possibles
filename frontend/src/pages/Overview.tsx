@@ -1,3 +1,4 @@
+import { ReminderBanner } from "@/components/layout/Reminders";
 import { useEffect, useState } from "react";
 import { Eye, Clock4, GitCompare, Minus, Plus } from "lucide-react";
 import { useApp, type Mode } from "@/context/AppContext";
@@ -50,6 +51,8 @@ export default function Overview({ fullTree = false }: { fullTree?: boolean }) {
     : <OverviewPanel />;
 
   return (
+    <>
+    <ReminderBanner />
     <div className={`overview-grid ${fullTree ? "overview-full" : ""}`} data-testid="overview-page">
       <section className="panel scene relative flex min-h-0 flex-col overflow-hidden" data-testid="tree-scene">
         <div className="z-10 flex flex-wrap items-center gap-2 p-3">
@@ -77,5 +80,6 @@ export default function Overview({ fullTree = false }: { fullTree?: boolean }) {
       {!fullTree && <div className="bottom-split grid min-h-0 gap-3 md:grid-cols-2"><SimulationZone /><ProgressionChart /></div>}
       {!fullTree && <FuturePreview />}
     </div>
+    </>
   );
 }

@@ -10,6 +10,7 @@ import { FRAGILITIES } from "@/data/fragilities";
 import { allQuests, stepStatus } from "@/lib/rpg";
 import { AiSettings } from "@/components/assistant/AiSettings";
 import { InstallButton } from "./InstallButton";
+import { useReminders, reminderText } from "./Reminders";
 
 const NAV = [
   ["/", "Vue d'ensemble", Compass], ["/enfants", "Enfants", User], ["/interventions", "Activités", Workflow],
@@ -43,16 +44,19 @@ function SearchBox() {
 }
 
 function Notifications() {
-  const { child } = useApp();
+  const { child, selectChild } = useApp();
   const [open, setOpen] = useState(false);
+  const reminders = useReminders();
   const pending = child ? allQuests(child).flatMap((q) => q.steps.map((s, i) => ({ q, s, st: stepStatus(child, q.id, i, s.status) }))).filter((x) => x.st === "en cours") : [];
   return (
     <div className="relative">
       <button className="icon-btn" onClick={() => setOpen(!open)} aria-label="Notifications" data-testid="notifications-button">
-        <Bell size={19} />{pending.length > 0 && <span className="notif-dot" />}
+        <Bell size={19} />{(pending.length > 0 || reminders.length > 0) && <span className="notif-dot" />}
       </button>
       {open && (
         <div className="popover absolute right-0 top-12 z-50 w-80 space-y-2 p-3" data-testid="notifications-popover">
+          {reminders.length > 0 && <><p className="eyebrow">Rappels de notes</p>
+            {reminders.map((r) => <Link key={r.child_id} to="/profil" onClick={() => { selectChild(r.child_id); setOpen(false); }} className="block text-xs" data-testid={`notif-reminder-${r.child_id}`}><span className="text-gold">{r.name}</span> · pas de note depuis 2 semaines ({reminderText(r)})</Link>)}</>}
           <p className="eyebrow">Étapes en cours</p>
           {pending.length === 0 && <p className="text-xs text-muted-foreground">Aucune étape en cours.</p>}
           {pending.map(({ q, s }) => <p key={q.id + s.title} className="text-xs"><span className="text-gold">{s.title}</span> · {q.title}</p>)}

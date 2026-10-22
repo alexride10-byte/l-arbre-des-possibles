@@ -20,6 +20,8 @@ import InterventionsPage from "@/pages/InterventionsPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import DocumentsPage from "@/pages/DocumentsPage";
 import ProgressCardPage from "@/pages/ProgressCardPage";
+import CalendarPage from "@/pages/CalendarPage";
+import ReportPage from "@/pages/ReportPage";
 import LauncherPage from "@/launcher/LauncherPage";
 
 function AuthCallback() {
@@ -79,6 +81,8 @@ function Gate() {
           <Route path="/ressources" element={<ResourcesPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/carte" element={<ProgressCardPage />} />
+          <Route path="/calendrier" element={<CalendarPage />} />
+          <Route path="/rapport" element={<ReportPage />} />
           <Route path="/enfants" element={<ChildrenPage />} />
           <Route path="/admin" element={user.role === "admin" ? <AdminPage /> : <Navigate to="/" />} />
           <Route path="/compte" element={<AccountPage />} />
