@@ -1,0 +1,34 @@
+{
+  "summary": "Frontend-only test of the new public Enfance+ launcher (desktop 1920x1080 + mobile 390x844) plus a login regression check. Almost everything works: launcher at / when logged out, /decouvrir when logged in, the tree grows (7 domain labels, 12 nodes, 5 roots), explore mode, camera zoom (scale 0.94 -> 2.75 on desktop, 0.39 -> 0.96 on mobile; data-view=domain), domain sheet with 6 sub-branches and 6 orbs, switching domains while zoomed, all 4 ways back to the overview (back-to-overview button, bar back button, sheet close, Escape), node/root sheets with link paths, chips and disclaimer, chip navigation to a node and to a domain, profile panel and avatar change (persisted in localStorage, tree avatar updated), resume button, settings toggles, reset, /connexion links, and admin login reaching the dashboard. One real interaction bug: the first 2 sub-branch orbs of 6 of the 7 domains are covered by the next dimmed domain, so tapping them switches domain instead of selecting the sub-branch.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "DomainBranch / TreeScene (domain zoom)", "issue": "Sub-orbs #1 and #2 cannot be clicked in 6 of 7 domains on desktop and mobile. elementFromPoint at the orb centre returns the NEXT domain's group (tree-domain-<next>) or its hit circle (tree-domain-hit-<next>), because that domain is drawn later in the SVG and sits on top. Affected: h1,h2 (covered by cognitif), c1,c2 (autonomie), u1,u2 (emotionnel), e1,e2 (social), s1,s2 (scolaire), a1,a2 (environnement). Only environnement (drawn last) works fully. Clicking these orbs switches the zoom to the neighbouring domain instead of highlighting the sub-branch. The matching domain-sub-* buttons in the sheet still work.", "selector": "[data-testid=tree-sub-e1], [data-testid=tree-sub-e2], ...", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Mobile 390x844 home/overview", "issues": ["The 'Environnement' domain label is clipped at the right edge (shows 'Environnemen'); the label bbox goes past 390px."]},
+      {"screen": "Mobile domain zoom", "issues": ["Sub-branch labels on the tree are very small (~8-10px visually) and low contrast against the foliage. Consider a larger subFs on mobile or a text halo."]},
+      {"screen": "Desktop/mobile", "issues": ["Root hit areas are thin (the path and small circle), so the centre of the root <g> lands on the trunk. Users have to tap precisely on the root dot or line. Consider an invisible wider stroke as a hit target."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix the sub-orb stacking. In TreeScene, render the selected domain LAST (e.g. sort TREE.domains so the selected id comes at the end). Also set pointer-events:none on the hit circles and leaves of dimmed domains in the area covered by the selected domain, or at least render the SubOrbs in a separate top-level layer after all DomainBranch groups.",
+    "Mobile: keep the 'Environnement' label inside the viewport (adjust the world rect x/w for narrow screens, or use text-anchor end for right-edge labels).",
+    "Optional: bigger mobile sub-orb labels and a wider invisible hit stroke on roots."
+  ],
+  "critical_code_review_comments": [
+    "TreeScene.tsx: SVG paint order = DOM order. Overlapping canopies make later domains capture clicks meant for the selected domain's orbs. This is the root cause of the HIGH bug.",
+    "LauncherPage resume: resume reopens session.domain, but openNode does not store the last node, so resume after a node view only opens the overview (minor).",
+    "The 401 console errors on load are the expected /api/auth/me check for logged-out visitors. No JS page errors were seen."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "~93% (1 HIGH interaction bug + minor design issues)"},
+  "test_credentials": "admin@enfanceplus.fr / Admin2026! (from /app/memory/test_credentials.md) - login works and reaches the dashboard",
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Launcher: /app/frontend/src/launcher. To check orb clickability use elementFromPoint at the centre of the second <circle> of each [data-testid^=tree-sub-]. Do not use the bbox centre of root groups: it lands on the trunk, so click 'tree-root-x circle' instead. Camera transition ~1.25s, grow animation ~4s.",
+  "rca of the issue": "Sub-orb click bug: DomainBranch renders the selected domain's SubOrbs inside its own <g>. Domains later in TREE.domains (dimmed, still with leaves and a transparent hit circle r=CANOPY_R+12) are painted over it, so they intercept pointer events on the orbs near the shared edge. Reproduce: Explorer l'arbre -> click the Émotionnel canopy -> click the 'Reconnaissance des émotions' orb on the tree -> the zoom switches to Social. Fix: render the selected domain last, or move the orbs to a separate top layer."
+}

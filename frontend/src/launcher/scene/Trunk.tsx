@@ -19,6 +19,7 @@ export function Trunk({ fs, labels, focusId, linked, dimAll, avatar, onRoot, onA
             <path d={taper(curve, 20, 2.5)} fill="url(#rootGrad)" className="grow-fade" style={{ animationDelay: `${0.3 + k * 0.08}s` }} />
             <path d={curvePath(curve)} stroke="#f5c46a" strokeWidth="1.6" strokeOpacity=".75" fill="none" pathLength={1} className="draw root-vein" style={{ animationDelay: `${0.25 + k * 0.1}s` }} />
             <circle cx={tip.x} cy={tip.y} r="4" fill="#ffd98a" className="node-in root-tip" style={{ animationDelay: `${1.1 + k * 0.08}s` }} />
+            <path d={curvePath(curve)} stroke="transparent" strokeWidth="24" fill="none" />
             <circle cx={tip.x} cy={tip.y} r="34" fill="transparent" />
             {labels && <text x={tip.x} y={tip.y + fs * 1.6} textAnchor="middle" fontSize={fs * 0.95} className="svg-label root-label node-in" style={{ animationDelay: `${3.2 + k * 0.06}s` }}>{r.label}</text>}
           </g>

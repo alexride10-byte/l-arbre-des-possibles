@@ -49,3 +49,18 @@ Application psychologique sur le développement de l'enfant, style RPG (maquette
 - PWA : manifest.webmanifest, sw.js (cache hors /api, actif en prod), icônes 192/512/apple, bouton Installer (data-testid install-app-button) dans TopBar avec aide iOS/Android/PC.
 - Déploiement externe : /app/DEPLOIEMENT.md (Atlas + Render + Vercel), /app/render.yaml, /app/frontend/vercel.json, /app/backend/requirements.txt (pip freeze + extra-index emergentintegrations).
 - Backlog P1 : Calendrier, Ressources, Rapports, Notifications ; vraie appli store (projet Expo séparé) si besoin.
+
+
+## 2026-06 — Launcher public Enfance+ (iteration 7)
+- Nouvel accueil public à / (déconnecté) et /decouvrir (toujours) : src/launcher/ (data/launcher.ts données fictives, scene/ SVG + caméra transform, logic/links.ts, state/useDemoSession.ts localStorage, ui/ panneaux).
+- Arbre dessiné qui pousse (racines → tronc → branches → feuillage), 7 domaines, zoom caméra réel par domaine (6 sous-branches), 6 capacités + 6 fragilités + 5 racines avec liens animés + disclaimer, profil fictif Lou + choix d'avatar, reprendre l'exploration, paramètres (animations, particules, noms, reset).
+- Appli pro inchangée derrière /connexion (Login a un lien retour accueil).
+- Hébergement : render.yaml = API Python + site statique Render ; DEPLOIEMENT.md mis à jour ; vercel.json supprimé.
+- Testé : iteration_7 (93
+## 2026-06 — Launcher public Enfance+ (iteration 7)
+- Nouvel accueil public à / (déconnecté) et /decouvrir (toujours) : src/launcher/ (data/launcher.ts données fictives, scene/ SVG + caméra, logic/links.ts, state/useDemoSession.ts localStorage, ui/ panneaux).
+- Arbre dessiné qui pousse (racines, tronc, branches, feuillage), 7 domaines, zoom caméra réel par domaine (6 sous-branches), 6 capacités + 6 fragilités + 5 racines avec liens animés + avertissement, profil fictif Lou + choix d'avatar, reprendre l'exploration, paramètres.
+- Appli pro inchangée derrière /connexion.
+- Hébergement : render.yaml = API Python + site statique Render ; DEPLOIEMENT.md à jour ; vercel.json supprimé.
+- Testé : iteration_7 (93 pourcent) puis correctifs (orbes recouvertes, label mobile, clic racines) vérifiés.
+- Backlog : chronologie, interventions, sources, IA locale sur le launcher ; Calendrier/Rapports/Notifications côté pro.

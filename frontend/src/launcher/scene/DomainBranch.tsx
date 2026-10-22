@@ -2,7 +2,7 @@ import { CANOPY_R, curvePath, taper, type Leaf, type TreeDomain } from "./geomet
 
 export type DomainState = "idle" | "selected" | "dim" | "linked";
 
-interface Props {
+export interface Props {
   t: TreeDomain; idx: number; state: DomainState; fs: number; subFs: number; labels: boolean; wrap: boolean;
   subId: string | null; onDomain: (id: string) => void; onSub: (id: string) => void;
 }
@@ -20,7 +20,7 @@ function anchor(angle: number) {
   return c > 0.35 ? "start" : c < -0.35 ? "end" : "middle";
 }
 
-function SubOrbs({ t, subFs, wrap, subId, onSub }: Pick<Props, "t" | "subFs" | "wrap" | "subId" | "onSub">) {
+export function SubOrbs({ t, subFs, wrap, subId, onSub }: Pick<Props, "t" | "subFs" | "wrap" | "subId" | "onSub">) {
   return (
     <g>
       {t.twigs.map((tw, k) => {
@@ -45,7 +45,7 @@ function SubOrbs({ t, subFs, wrap, subId, onSub }: Pick<Props, "t" | "subFs" | "
   );
 }
 
-export function DomainBranch({ t, idx, state, fs, subFs, labels, wrap, subId, onDomain, onSub }: Props) {
+export function DomainBranch({ t, idx, state, fs, labels, onDomain }: Omit<Props, "subFs" | "wrap" | "subId" | "onSub">) {
   const { d, curve, offshoots, canopy, label, twigs } = t;
   const delay = 1.3 + idx * 0.09;
   const selected = state === "selected";
@@ -71,7 +71,6 @@ export function DomainBranch({ t, idx, state, fs, subFs, labels, wrap, subId, on
               <path key={tw.sub.id} d={curvePath(tw.curve)} stroke={d.palette.light} strokeWidth="1.3" strokeLinecap="round" fill="none" pathLength={1} className="draw twig-light" style={{ animationDelay: `${0.35 + k * 0.1}s` }} />
             ))}
             <Leaves items={t.detail} cls="leaf-pop" />
-            <SubOrbs t={t} subFs={subFs} wrap={wrap} subId={subId} onSub={onSub} />
           </g>
         )}
       </g>
@@ -80,7 +79,7 @@ export function DomainBranch({ t, idx, state, fs, subFs, labels, wrap, subId, on
           aria-label={`Explorer le domaine ${d.name}`} onKeyDown={(e) => e.key === "Enter" && onDomain(d.id)} data-testid={`tree-domain-hit-${d.id}`} />
       )}
       {labels && (
-        <text x={label.x} y={label.y + fs * 0.35} textAnchor="middle" fontSize={fs * 1.3} fill={d.palette.light} className="svg-label dom-label node-in" style={{ animationDelay: `${delay + 2}s` }}
+        <text x={label.x + (label.x > 850 ? 60 : label.x < 150 ? -60 : 0)} y={label.y + fs * 0.35} textAnchor={label.x > 850 ? "end" : label.x < 150 ? "start" : "middle"} fontSize={fs * 1.3} fill={d.palette.light} className="svg-label dom-label node-in" style={{ animationDelay: `${delay + 2}s` }}
           onClick={() => onDomain(d.id)} data-testid={`tree-domain-label-${d.id}`}>{d.name}</text>
       )}
     </g>

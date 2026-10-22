@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Defs } from "./Defs";
 import { Trunk } from "./Trunk";
-import { DomainBranch, type DomainState } from "./DomainBranch";
+import { DomainBranch, SubOrbs, type DomainState } from "./DomainBranch";
 import { NodeLayer } from "./NodeLayer";
 import { LinkLayer } from "./LinkLayer";
 import { TREE } from "./geometry";
@@ -30,7 +30,7 @@ export function TreeScene({ view, domainId, focusId, subId, avatar, labels, onDo
   const cam = cameraFor(dom ? "domain" : view, w, h, dom?.canopy);
   const sBase = cameraFor("overview", w, h).s;
   const fs = Math.max(13, (isWide(w) ? 12.5 : 10) / sBase);
-  const subFs = (isWide(w) ? 14 : 11.5) / (dom ? cam.s : 1);
+  const subFs = (isWide(w) ? 14 : 13) / (dom ? cam.s : 1);
   const linked = useMemo(() => new Set(focusId ? linksFor(focusId).map((l) => l.id) : []), [focusId]);
   const stateOf = (id: string): DomainState => domainId ? (id === domainId ? "selected" : "dim") : focusId ? (linked.has(id) ? "linked" : "dim") : "idle";
   const dimNodes = !!domainId || !!focusId;
@@ -42,8 +42,9 @@ export function TreeScene({ view, domainId, focusId, subId, avatar, labels, onDo
         <g className="camera" style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})` }} data-testid="tree-camera">
           <Trunk fs={fs} labels={labels} focusId={focusId} linked={linked} dimAll={dimNodes} avatar={avatar} onRoot={onNode} onAvatar={onAvatar} />
           {TREE.domains.map((t, i) => (
-            <DomainBranch key={t.d.id} t={t} idx={i} state={stateOf(t.d.id)} fs={fs} subFs={subFs} labels={labels} wrap={!isWide(w)} subId={subId} onDomain={onDomain} onSub={onSub} />
+            <DomainBranch key={t.d.id} t={t} idx={i} state={stateOf(t.d.id)} fs={fs} labels={labels} onDomain={onDomain} />
           ))}
+          {dom && <g key={dom.d.id} className="dom-detail"><SubOrbs t={dom} subFs={subFs} wrap={!isWide(w)} subId={subId} onSub={onSub} /></g>}
           <NodeLayer fs={fs} labels={labels} focusId={focusId} linked={linked} dimAll={dimNodes} onNode={onNode} />
           {focusId && <LinkLayer key={focusId} id={focusId} />}
         </g>
