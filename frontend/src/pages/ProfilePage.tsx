@@ -7,6 +7,7 @@ import { AvatarCustomizer } from "@/components/layout/AvatarCustomizer";
 import { xpLevel } from "@/lib/rpg";
 import { SharePanel } from "@/components/layout/SharePanel";
 import { AvatarStudio } from "@/components/layout/AvatarStudio";
+import { ChildNotes } from "@/components/layout/ChildNotes";
 
 export default function ProfilePage() {
   const { child, profiles, selectChild, saveChild, reloadProfiles, user, canWrite } = useApp();
@@ -75,6 +76,7 @@ export default function ProfilePage() {
           <button className="btn-outline w-full" type="submit" data-testid="new-profile-submit"><Plus size={15} /> Ajouter le profil</button>
         </form>}
       </section>
+      <div className="xl:col-span-2"><ChildNotes /></div>
       <div className="xl:col-span-1"><AvatarStudio /></div>
       <div><SharePanel /></div>
       {avatarOpen && <AvatarCustomizer options={child.avatar} onChange={async (a) => saveChild(await send<Child>(`/children/${child.child_id}`, "PUT", { avatar: a }))} onClose={() => setAvatarOpen(false)} />}

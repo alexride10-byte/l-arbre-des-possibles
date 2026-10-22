@@ -3,7 +3,8 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-
 import { api, send, setToken, type User } from "@/lib/api";
 import { AppProvider } from "@/context/AppContext";
 import { AppShell } from "@/components/layout/AppShell";
-import Login, { PendingScreen } from "@/pages/Login";
+import Login, { PendingScreen, SetupScreen } from "@/pages/Login";
+import { applyAll, type ContentDoc } from "@/lib/content";
 import ChildrenPage from "@/pages/ChildrenPage";
 import AdminPage from "@/pages/AdminPage";
 import InternalPage from "@/pages/InternalPage";
@@ -45,13 +46,21 @@ const Splash = () => (
 function Gate() {
   const location = useLocation();
   const [user, setUser] = useState<User | null | false>((location.state as { user?: User } | null)?.user ?? null);
+  const [setup, setSetup] = useState<boolean | null>(null);
+  const [contentReady, setContentReady] = useState(false);
+  useEffect(() => { api<{ needs_setup: boolean }>("/setup/status").then((r) => setSetup(r.needs_setup)).catch(() => setSetup(false)); }, []);
   useEffect(() => {
     if (user) return;
     api<User>("/auth/me").then(setUser).catch(() => setUser(false));
   }, [user]);
-  if (user === null) return <Splash />;
+  useEffect(() => {
+    if (user && user.status === "active") api<ContentDoc[]>("/content").then(applyAll).catch(() => {}).finally(() => setContentReady(true));
+  }, [user]);
+  if (user === null || setup === null) return <Splash />;
+  if (setup && !user) return <SetupScreen />;
   if (user === false) return <Login />;
   if (user.status !== "active") return <PendingScreen user={user} />;
+  if (!contentReady) return <Splash />;
   if (user.role === "internal") return (
     <AppProvider initialUser={user}><AppShell><Routes>
       <Route path="/compte" element={<AccountPage />} /><Route path="/messages" element={<MessagesPage />} /><Route path="*" element={<InternalPage />} />

@@ -17,6 +17,7 @@ import httpx
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse, Response as RawResponse
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone, ImageContent
@@ -946,7 +947,7 @@ async def reset_tree(child_id: str, request: Request):
 # ---------- Seed ----------
 IMG = "https://static.prod-images.emergentagent.com/jobs/5a8bc270-5ed8-4704-a01d-2ff7d09abd2b/images/"
 SEED_USERS = [
-    ("admin", os.environ["ADMIN_EMAIL"], os.environ["ADMIN_PASSWORD"], "Claire Admin", "admin", "active"),
+    ("admin", "", "", "", "admin", "active"),
     ("educ", "educateur@enfanceplus.fr", "Educateur2026!", "Thomas Éducateur", "educator", "active"),
     ("dir", "direction@enfanceplus.fr", "Direction2026!", "Sophie Direction", "direction", "active"),
     ("interne", "interne@enfanceplus.fr", "Interne2026!", "Équipe Enfance+", "internal", "active"),
@@ -960,20 +961,19 @@ SEED_CHILDREN = [
 ]
 
 
-@app.on_event("startup")
-async def seed():
-    await db.users.create_index("email", unique=True)
-    await db.login_attempts.create_index("identifier")
-    await db.email_tokens.create_index("token")
+SEED_DEMO = os.environ["SEED_DEMO"].lower() == "true"
+
+
+async def seed_demo(admin_id: str, admin_name: str):
     for key, email, pwd, name, role, status in SEED_USERS:
-        uid = f"seed_{key}"
+        if role == "admin":
+            continue
         existing = await db.users.find_one({"email": email})
         if not existing:
-            await db.users.insert_one({"user_id": uid, "email": email, "name": name, "picture": None, "password_hash": hash_password(pwd),
+            await db.users.insert_one({"user_id": f"seed_{key}", "email": email, "name": name, "picture": None, "password_hash": hash_password(pwd),
                                        "email_verified": True, "status": status, "role": role, "audience": "pro", "created_at": now_iso()})
         elif not verify_password(pwd, existing.get("password_hash") or hash_password("x")):
             await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(pwd)}})
-    admin_id = (await db.users.find_one({"email": os.environ["ADMIN_EMAIL"]}))["user_id"]
     for cid, name, age, grade, portrait, levels in SEED_CHILDREN:
         if not await db.children.find_one({"child_id": cid}):
             doc = new_child_doc(admin_id, ChildIn(name=name, age=age, grade=grade, notes="Profil entièrement fictif (démonstration)"))
@@ -996,12 +996,151 @@ async def seed():
     if not await db.threads.find_one({"thread_id": "th_seed_leo"}):
         at = now_iso()
         await db.threads.insert_one({"thread_id": "th_seed_leo", "title": "Point sur les transitions de Léo", "child_id": "seed_leo",
-                                     "participants": [admin_id, "seed_educ"], "participant_names": ["Claire Admin", "Thomas Éducateur"],
+                                     "participants": [admin_id, "seed_educ"], "participant_names": [admin_name, "Thomas Éducateur"],
                                      "created_by": admin_id, "created_at": at, "last_at": at, "last_text": "", "read_by": {}})
-        for author, name, text in [(admin_id, "Claire Admin", "Bonjour Thomas, comment se passent les transitions avec le minuteur visuel ?"),
+        for author, name, text in [(admin_id, admin_name, "Bonjour Thomas, comment se passent les transitions avec le minuteur visuel ?"),
                                    ("seed_educ", "Thomas Éducateur", "Mieux ! Le refus dure moins longtemps cette semaine. J'ai ajouté une observation dans le dossier.")]:
             await db.thread_messages.insert_one({"msg_id": uuid.uuid4().hex, "thread_id": "th_seed_leo", "author_id": author, "author_name": name, "text": text, "created_at": now_iso()})
         await db.threads.update_one({"thread_id": "th_seed_leo"}, {"$set": {"last_at": now_iso(), "last_text": text[:140], "last_author": name}})
+
+
+@app.on_event("startup")
+async def seed():
+    await db.users.create_index("email", unique=True)
+    await db.login_attempts.create_index("identifier")
+    await db.email_tokens.create_index("token")
+    await db.child_notes.create_index("child_id")
+    if not SEED_DEMO:
+        return
+    email, pwd = os.environ["ADMIN_EMAIL"], os.environ["ADMIN_PASSWORD"]
+    existing = await db.users.find_one({"email": email})
+    if not existing:
+        await db.users.insert_one({"user_id": "seed_admin", "email": email, "name": "Claire Admin", "picture": None, "password_hash": hash_password(pwd),
+                                   "email_verified": True, "status": "active", "role": "admin", "audience": "pro", "created_at": now_iso()})
+    elif not verify_password(pwd, existing.get("password_hash") or hash_password("x")):
+        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(pwd)}})
+    admin = await db.users.find_one({"email": email})
+    await seed_demo(admin["user_id"], admin["name"])
+
+
+# ---------- Première installation ----------
+class SetupIn(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=8, max_length=128)
+    demo: bool = False
+
+
+@api.get("/setup/status")
+async def setup_status():
+    return {"needs_setup": not await db.users.find_one({"role": "admin", "status": "active"}, {"_id": 1})}
+
+
+@api.post("/setup")
+async def setup(body: SetupIn, request: Request, response: Response):
+    if await db.users.find_one({"role": "admin", "status": "active"}, {"_id": 1}):
+        raise HTTPException(403, "L'installation a déjà été effectuée")
+    try:
+        await db.app_settings.insert_one({"_id": "setup", "at": now_iso()})
+    except DuplicateKeyError:
+        raise HTTPException(409, "Installation déjà en cours ou terminée")
+    email = body.email.lower().strip()
+    user = {"user_id": f"user_{uuid.uuid4().hex[:12]}", "email": email, "name": body.name.strip(), "picture": None,
+            "password_hash": hash_password(body.password), "email_verified": True, "status": "active", "role": "admin",
+            "audience": "pro", "created_at": now_iso()}
+    existing = await db.users.find_one({"email": email}, {"_id": 0})
+    if existing:
+        user["user_id"] = existing["user_id"]
+        await db.users.update_one({"email": email}, {"$set": {k: v for k, v in user.items() if k != "created_at"}})
+    else:
+        await db.users.insert_one(user)
+        user.pop("_id", None)
+    if body.demo:
+        await seed_demo(user["user_id"], user["name"])
+    token = await open_session(response, user["user_id"], request)
+    await audit(user, "setup.admin_created", detail="avec données de démo" if body.demo else "base vide", request=request)
+    return {**public_user(user), "session_token": token}
+
+
+# ---------- Contenus modifiables ----------
+CONTENT_KINDS = ("domain", "fragility")
+
+
+class ContentIn(BaseModel):
+    data: dict
+
+
+@api.get("/content")
+async def list_content(request: Request):
+    await current_user(request)
+    return await db.content.find({}, {"_id": 0}).to_list(200)
+
+
+@api.put("/admin/content/{kind}/{item_id}")
+async def save_content(kind: str, item_id: str, body: ContentIn, request: Request):
+    admin = await current_user(request)
+    require_role(admin, "admin")
+    if kind not in CONTENT_KINDS:
+        raise HTTPException(400, "Type de contenu inconnu")
+    doc = {"kind": kind, "item_id": item_id, "data": body.data, "updated_at": now_iso(), "updated_by": admin["name"]}
+    await db.content.update_one({"kind": kind, "item_id": item_id}, {"$set": doc}, upsert=True)
+    await audit(admin, "content.update", detail=f"{kind}:{item_id}", request=request)
+    return doc
+
+
+@api.delete("/admin/content/{kind}/{item_id}")
+async def reset_content(kind: str, item_id: str, request: Request):
+    admin = await current_user(request)
+    require_role(admin, "admin")
+    await db.content.delete_one({"kind": kind, "item_id": item_id})
+    await audit(admin, "content.reset", detail=f"{kind}:{item_id}", request=request)
+    return {"ok": True}
+
+
+# ---------- Notes par enfant ----------
+class NoteIn(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+
+
+async def own_note(user: dict, child_id: str, note_id: str) -> dict:
+    note = await db.child_notes.find_one({"note_id": note_id, "child_id": child_id}, {"_id": 0})
+    if not note:
+        raise HTTPException(404, "Note introuvable")
+    if note["author_id"] != user["user_id"] and user.get("role") != "admin":
+        raise HTTPException(403, "Seul l'auteur ou l'administrateur peut modifier cette note")
+    return note
+
+
+@api.get("/children/{child_id}/notes")
+async def list_notes(child_id: str, request: Request):
+    await get_child(request, child_id)
+    return await db.child_notes.find({"child_id": child_id}, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+
+@api.post("/children/{child_id}/notes")
+async def create_note(child_id: str, body: NoteIn, request: Request):
+    user, _ = await get_child(request, child_id)
+    doc = {"note_id": f"note_{uuid.uuid4().hex[:12]}", "child_id": child_id, "text": body.text.strip(), "author_id": user["user_id"],
+           "author_name": user["name"], "created_at": now_iso(), "updated_at": None}
+    await db.child_notes.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api.put("/children/{child_id}/notes/{note_id}")
+async def update_note(child_id: str, note_id: str, body: NoteIn, request: Request):
+    user, _ = await get_child(request, child_id)
+    await own_note(user, child_id, note_id)
+    await db.child_notes.update_one({"note_id": note_id}, {"$set": {"text": body.text.strip(), "updated_at": now_iso()}})
+    return await db.child_notes.find_one({"note_id": note_id}, {"_id": 0})
+
+
+@api.delete("/children/{child_id}/notes/{note_id}")
+async def delete_note(child_id: str, note_id: str, request: Request):
+    user, _ = await get_child(request, child_id)
+    await own_note(user, child_id, note_id)
+    await db.child_notes.delete_one({"note_id": note_id})
+    return {"ok": True}
 
 
 @api.get("/")
