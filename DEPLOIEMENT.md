@@ -1,7 +1,10 @@
-# Déployer Enfance+ depuis GitHub
+# Déployer Enfance+ sur Render (site + serveur) depuis GitHub
 
-Architecture : **site web (React/Vite) sur Vercel** + **serveur (FastAPI) sur Render** + **base de données sur MongoDB Atlas**.
-Une fois en ligne, le site s'installe comme un logiciel sur ordinateur et comme une application sur téléphone (bouton ⬇ en haut à droite).
+Architecture : **site web (React/Vite) + serveur (FastAPI) sur Render**, **base de données sur MongoDB Atlas**.
+Le fichier `render.yaml` à la racine crée les deux services en une fois.
+
+- `https://<votre-site>.onrender.com/` → launcher public (arbre interactif, profil fictif, aucune connexion requise)
+- `https://<votre-site>.onrender.com/connexion` → espace professionnel (comptes, messagerie, administration)
 
 ## 0. Envoyer le code sur GitHub
 Dans Emergent : bouton **Save** → **Save to GitHub** → choisissez le dépôt et la branche.
@@ -12,35 +15,32 @@ Dans Emergent : bouton **Save** → **Save to GitHub** → choisissez le dépôt
 3. *Network Access* : ajoutez `0.0.0.0/0`.
 4. *Connect → Drivers* : copiez l'adresse `mongodb+srv://...` → ce sera **MONGO_URL**.
 
-## 2. Serveur — Render
-1. https://render.com → **New → Blueprint** → sélectionnez votre dépôt GitHub (le fichier `render.yaml` est détecté).
-2. Remplissez les variables demandées :
+## 2. Render — Blueprint
+1. https://render.com → **New → Blueprint** → sélectionnez votre dépôt GitHub.
+2. Render détecte deux services : `enfance-plus-api` (serveur) et `enfance-plus` (site). Remplissez :
 
-| Variable | Valeur |
-|---|---|
-| `MONGO_URL` | l'adresse copiée sur Atlas |
-| `DB_NAME` | `enfance_plus` |
-| `CORS_ORIGINS` | l'adresse de votre site Vercel (ex. `https://enfance-plus.vercel.app`) — à compléter après l'étape 3 |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | le compte administrateur créé au démarrage |
-| `EMERGENT_LLM_KEY` | votre clé universelle Emergent (Profil → Universal Key) pour l'IA et les avatars |
+| Service | Variable | Valeur |
+|---|---|---|
+| enfance-plus-api | `MONGO_URL` | l'adresse copiée sur Atlas |
+| enfance-plus-api | `CORS_ORIGINS` | l'adresse du site, ex. `https://enfance-plus.onrender.com` |
+| enfance-plus-api | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | le compte administrateur créé au démarrage |
+| enfance-plus-api | `EMERGENT_LLM_KEY` | votre clé universelle Emergent (Profil → Universal Key) pour l'IA de l'espace pro |
+| enfance-plus | `REACT_APP_BACKEND_URL` | l'adresse du serveur, ex. `https://enfance-plus-api.onrender.com` (sans `/` final) |
 
-3. Déployez. Notez l'adresse obtenue, ex. `https://enfance-plus-api.onrender.com`.
-   Test : ouvrez `https://enfance-plus-api.onrender.com/api/` dans le navigateur.
+3. Cliquez **Apply**. Test du serveur : `https://enfance-plus-api.onrender.com/api/` doit répondre.
+4. Si vous changez `REACT_APP_BACKEND_URL` après coup, relancez le site : **Manual Deploy → Clear build cache & deploy**.
 
-## 3. Site web — Vercel
-1. https://vercel.com → **Add New → Project** → importez le dépôt GitHub.
-2. **Root Directory** : `frontend` (le fichier `vercel.json` règle la compilation).
-3. Variable d'environnement : `REACT_APP_BACKEND_URL` = l'adresse Render (sans `/api` ni `/` final).
-4. **Deploy**. Revenez sur Render pour mettre l'adresse Vercel dans `CORS_ORIGINS`, puis redéployez le serveur.
+Chaque `git push` sur GitHub redéploie automatiquement les deux services.
 
-## 4. Installer l'application
-- **Ordinateur (Chrome / Edge)** : icône « Installer » dans la barre d'adresse, ou bouton ⬇ dans Enfance+.
+## 3. Installer l'application
+- **Ordinateur (Chrome / Edge)** : icône « Installer » dans la barre d'adresse (ou bouton ⬇ dans l'espace pro).
 - **Android** : menu ⋮ → « Installer l'application ».
 - **iPhone / iPad** : Safari → Partager → « Sur l'écran d'accueil ».
 
-Chaque `git push` sur GitHub redéploie automatiquement Vercel et Render.
-
 ## Bon à savoir
-- L'offre gratuite de Render met le serveur en veille : la première ouverture peut prendre ~30 s.
-- `EMAIL_MODE=simulated` : les e-mails de vérification sont simulés (aucun vrai e-mail n'est envoyé).
+- L'offre gratuite de Render met le serveur en veille : la première ouverture de l'espace pro peut prendre ~30 s. Le launcher, lui, s'affiche immédiatement (il n'utilise pas le serveur).
+- `EMAIL_MODE=simulated` : les e-mails de vérification sont simulés.
 - Les données de l'aperçu Emergent ne sont pas copiées : la nouvelle base démarre avec les comptes de démonstration.
+
+## Modifier les données du launcher
+Tout est dans `frontend/src/launcher/data/launcher.ts` (domaines, sous-branches, racines, capacités, fragilités, liens, profil fictif). La scène (`launcher/scene/`), les interactions (`launcher/logic/`, `launcher/state/`) et l'interface (`launcher/ui/`) sont séparées.

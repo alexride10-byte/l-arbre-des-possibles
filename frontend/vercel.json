@@ -1,5 +1,0 @@
-{
-  "buildCommand": "yarn build",
-  "outputDirectory": "build",
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
-}

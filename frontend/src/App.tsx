@@ -19,6 +19,7 @@ import InterventionsPage from "@/pages/InterventionsPage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import DocumentsPage from "@/pages/DocumentsPage";
 import ProgressCardPage from "@/pages/ProgressCardPage";
+import LauncherPage from "@/launcher/LauncherPage";
 
 function AuthCallback() {
   const location = useLocation();
@@ -49,7 +50,7 @@ function Gate() {
     api<User>("/auth/me").then(setUser).catch(() => setUser(false));
   }, [user]);
   if (user === null) return <Splash />;
-  if (user === false) return <Login />;
+  if (user === false) return location.pathname === "/connexion" ? <Login /> : <LauncherPage />;
   if (user.status !== "active") return <PendingScreen user={user} />;
   if (user.role === "internal") return (
     <AppProvider initialUser={user}><AppShell><Routes>
@@ -87,5 +88,6 @@ export default function App() {
   if (location.hash?.includes("session_id=")) return <AuthCallback />;
   if (location.pathname === "/verifier") return <Login initial="verify" />;
   if (location.pathname === "/reinitialiser") return <Login initial="reset" />;
+  if (location.pathname === "/decouvrir") return <LauncherPage />;
   return <Gate />;
 }
