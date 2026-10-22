@@ -76,3 +76,8 @@ Application psychologique sur le développement de l'enfant, style RPG (maquette
 ## 2026-06 — Calendrier, rapport, racines, rappels (iteration 9) + préparation Render
 - Calendrier partagé /calendrier (events: équipe de l'enfant + admin écrivent, direction lecture), rapport mensuel imprimable /rapport, racines (5) + facteurs modifiables (content kinds roots/factor, renommage propagé aux contextes), rappels 14 jours (/api/reminders, bandeau + cloche).
 - Render : requirements.txt réduit aux dépendances directes (l'ancien pip freeze était impossible à installer : conflit litellm), PYTHON_VERSION 3.11.11 + NODE_VERSION 20 dans render.yaml. Install + build vérifiés dans un environnement vierge.
+
+## 2026-06 — Correctif Render "Could not open requirements file"
+- render.yaml sans rootDir : commandes depuis la racine (pip install -r backend/requirements.txt ; cd backend && uvicorn ; cd frontend && yarn install && yarn build ; publish frontend/build).
+- Ajouts : requirements.txt racine (-r backend/requirements.txt), .python-version 3.11.11, frontend/yarn.lock désormais suivi par git.
+- Simulation complète des commandes Render depuis une copie du dépôt : OK. DEPLOIEMENT.md réécrit pour mobile.

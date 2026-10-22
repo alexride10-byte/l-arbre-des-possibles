@@ -1,50 +1,50 @@
-# Déployer Enfance+ sur Render (site + serveur) depuis GitHub
+# Publier Enfance+ sur Render (depuis un téléphone)
 
-Architecture : **site web (React/Vite) + serveur (FastAPI) sur Render**, **base de données sur MongoDB Atlas**.
-Le fichier `render.yaml` à la racine crée les deux services en une fois.
-
-- `https://<votre-site>.onrender.com/` → accueil manga et connexion à l'espace professionnel
-- **Premier lancement** : un écran « Installation d'Enfance+ » vous demande de créer le compte administrateur (e-mail + mot de passe). Vous pouvez cocher « Ajouter les données de démonstration ». Cet écran disparaît ensuite définitivement.
-
-## 0. Envoyer le code sur GitHub
-Dans Emergent : bouton **Save** → **Save to GitHub** → choisissez le dépôt et la branche.
-
-## 1. Base de données — MongoDB Atlas (gratuit)
-1. Créez un compte sur https://www.mongodb.com/cloud/atlas et un cluster **M0 (gratuit)**.
-2. *Database Access* : créez un utilisateur + mot de passe.
-3. *Network Access* : ajoutez `0.0.0.0/0`.
-4. *Connect → Drivers* : copiez l'adresse `mongodb+srv://...` → ce sera **MONGO_URL**.
-
-## 2. Render — Blueprint
-1. https://render.com → **New → Blueprint** → sélectionnez votre dépôt GitHub.
-2. Render détecte deux services : `enfance-plus-api` (serveur) et `enfance-plus` (site). Remplissez :
-
-| Service | Variable | Valeur |
+## Ce que contient le projet
+| Partie | Dossier | Fichier clé |
 |---|---|---|
-| enfance-plus-api | `MONGO_URL` | l'adresse copiée sur Atlas |
-| enfance-plus-api | `CORS_ORIGINS` | l'adresse du site, ex. `https://enfance-plus.onrender.com` |
-| enfance-plus-api | `EMERGENT_LLM_KEY` | votre clé universelle Emergent (Profil → Universal Key) pour l'IA de l'espace pro |
-| enfance-plus | `REACT_APP_BACKEND_URL` | l'adresse du serveur, ex. `https://enfance-plus-api.onrender.com` (sans `/` final) |
+| Serveur (FastAPI) | `backend/` | `backend/requirements.txt`, `backend/server.py` |
+| Site (React/Vite) | `frontend/` | `frontend/package.json`, `frontend/yarn.lock` |
+| Configuration Render | racine | `render.yaml` (crée les 2 services) |
 
-3. Cliquez **Apply**. Test du serveur : `https://enfance-plus-api.onrender.com/api/` doit répondre.
-4. Si vous changez `REACT_APP_BACKEND_URL` après coup, relancez le site : **Manual Deploy → Clear build cache & deploy**.
+Les commandes de `render.yaml` partent de la **racine du dépôt** :
+- Serveur : `pip install -r backend/requirements.txt`, puis `cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT`
+- Site : `cd frontend && yarn install && yarn build` → publie `frontend/build`
 
-Chaque `git push` sur GitHub redéploie automatiquement les deux services.
+## Étape 1 — Envoyer la dernière version sur GitHub
+Dans Emergent : **Save → Save to GitHub** (même dépôt, même branche que Render).
+Vérification sur le téléphone : ouvrez votre dépôt sur github.com. Vous devez voir `render.yaml`, `backend/requirements.txt` et `frontend/yarn.lock`.
 
-## 3. Installer l'application
-- **Ordinateur (Chrome / Edge)** : icône « Installer » dans la barre d'adresse (ou bouton ⬇ dans l'espace pro).
-- **Android** : menu ⋮ → « Installer l'application ».
-- **iPhone / iPad** : Safari → Partager → « Sur l'écran d'accueil ».
+## Étape 2 — Base de données MongoDB Atlas (gratuite)
+1. mongodb.com/cloud/atlas → créer un cluster **M0**.
+2. *Database Access* → ajouter un utilisateur + mot de passe.
+3. *Network Access* → ajouter `0.0.0.0/0`.
+4. *Connect → Drivers* → copier l'adresse `mongodb+srv://…`.
 
-## Vérifié avant publication
-- Installation du serveur depuis zéro (`pip install -r backend/requirements.txt`, Python 3.11) : OK. Le serveur démarre et répond sur `/api/`.
-- Compilation du site depuis zéro (`yarn install --frozen-lockfile && yarn build`, Node 20) : OK.
-- Les versions Python 3.11 et Node 20 sont fixées dans `render.yaml`. Les fichiers `.env` ne partent pas sur GitHub : les valeurs se saisissent dans Render.
+## Étape 3 — Render
+1. **Si un ancien service a échoué** : ouvrez-le → *Settings* → tout en bas, **Delete**. Supprimez aussi l'ancien Blueprint.
+2. **New → Blueprint** → choisissez le dépôt → Render lit `render.yaml`.
+3. Remplissez les cases demandées :
+
+| Service | Variable | Quoi mettre |
+|---|---|---|
+| enfance-plus-api | `MONGO_URL` | l'adresse Atlas copiée |
+| enfance-plus-api | `CORS_ORIGINS` | `https://enfance-plus.onrender.com` (l'adresse du site) |
+| enfance-plus-api | `EMERGENT_LLM_KEY` | votre clé universelle Emergent (Profil → Universal Key) |
+| enfance-plus | `REACT_APP_BACKEND_URL` | `https://enfance-plus-api.onrender.com` (sans `/` à la fin) |
+
+Les autres réglages (`DB_NAME`, `AUTH_ENABLED`, `EMAIL_MODE`, `SEED_DEMO`, `CORS_ORIGIN_REGEX`, Python 3.11, Node 20) sont déjà remplis.
+
+4. **Apply**. Attendez que les 2 services soient « Live » (5 à 10 min).
+5. Si Render vous a donné d'autres adresses que celles du tableau, corrigez `CORS_ORIGINS` et `REACT_APP_BACKEND_URL`, puis sur le site : **Manual Deploy → Clear build cache & deploy**.
+
+## Étape 4 — Premier lancement
+- Test du serveur : `https://enfance-plus-api.onrender.com/api/` doit afficher `{"app":"Enfance+","status":"ok"}`.
+- Ouvrez le site → écran **« Installation d'Enfance+ »** → créez votre compte administrateur (cochez les données de démo si vous le voulez). Cet écran n'apparaît qu'une fois.
+- Installer l'appli : Android → menu ⋮ → « Installer l'application » ; iPhone → Safari → Partager → « Sur l'écran d'accueil ».
 
 ## Bon à savoir
-- L'offre gratuite de Render met le serveur en veille : la première ouverture de l'espace pro peut prendre ~30 s. Le launcher, lui, s'affiche immédiatement (il n'utilise pas le serveur).
-- `EMAIL_MODE=simulated` : les e-mails de vérification sont simulés.
-- Les données de l'aperçu Emergent ne sont pas copiées : la nouvelle base démarre avec les comptes de démonstration.
-
-## Modifier les données du launcher
-Tout est dans `frontend/src/launcher/data/launcher.ts` (domaines, sous-branches, racines, capacités, fragilités, liens, profil fictif). La scène (`launcher/scene/`), les interactions (`launcher/logic/`, `launcher/state/`) et l'interface (`launcher/ui/`) sont séparées.
+- Offre gratuite : le serveur s'endort après 15 min sans visite ; la première ouverture prend ~30 s.
+- Les e-mails sont simulés (`EMAIL_MODE=simulated`).
+- Les fichiers `.env` ne partent jamais sur GitHub : les secrets se saisissent uniquement dans Render.
+- Chaque nouveau « Save to GitHub » redéploie automatiquement.
