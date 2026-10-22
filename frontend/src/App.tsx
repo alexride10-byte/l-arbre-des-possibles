@@ -50,7 +50,7 @@ function Gate() {
     api<User>("/auth/me").then(setUser).catch(() => setUser(false));
   }, [user]);
   if (user === null) return <Splash />;
-  if (user === false) return location.pathname === "/connexion" ? <Login /> : <LauncherPage />;
+  if (user === false) return <Login />;
   if (user.status !== "active") return <PendingScreen user={user} />;
   if (user.role === "internal") return (
     <AppProvider initialUser={user}><AppShell><Routes>

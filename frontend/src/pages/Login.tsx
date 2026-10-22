@@ -14,7 +14,6 @@ const googleSignIn = () => {
 function Shell({ children }: { children: ReactNode }) {
   return (
     <main className="auth-page" data-testid="auth-page">
-      <a href="/" className="fixed left-4 top-4 z-50 rounded-full border border-amber-300/30 bg-black/40 px-4 py-2 text-xs text-amber-100 backdrop-blur" data-testid="auth-back-home">← Accueil Enfance+</a>
       <section className="auth-hero" style={{ backgroundImage: `url(${HERO})` }}>
         <div className="auth-hero-text">
           <h1 className="font-display text-6xl font-bold xl:text-7xl">Enfance<span className="text-gold">+</span></h1>
