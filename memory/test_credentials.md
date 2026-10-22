@@ -24,3 +24,7 @@ GET /api/admin/users; PUT /api/admin/users/{uid} {status,role}; PUT /api/admin/c
 GET /api/internal/stats
 POST /api/children/{cid}/avatar/generate {gender,hair,outfit,accessory,background,expression}; GET /api/avatars/{id}
 Brute force: 5 failed logins per ip+email -> 429 for 15 min.
+
+## First-time setup (2026-06)
+- SEED_DEMO=true in preview: admin above is seeded, so /api/setup/status -> needs_setup=false (setup screen hidden).
+- On a fresh DB with SEED_DEMO=false: GET /api/setup/status -> needs_setup=true; POST /api/setup {name,email,password,demo} creates the admin once (403 afterwards).

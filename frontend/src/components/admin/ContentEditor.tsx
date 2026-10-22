@@ -40,7 +40,8 @@ function NodesField({ nodes, onChange }: { nodes: SubNode[]; onChange: (n: SubNo
           <button className="icon-btn" onClick={() => onChange(nodes.filter((_, k) => k !== i))} aria-label="Retirer" data-testid={`content-node-remove-${i}`}><Trash2 size={14} /></button>
         </div>
       ))}
-      <button className="btn-outline h-9" onClick={() => onChange([...nodes, { id: `n_${Date.now()}`, label: "Nouvelle sous-branche", kind: "competence", note: "" }])} data-testid="content-node-add"><Plus size={14} /> Ajouter une sous-branche</button>
+      {nodes.length < 4 ? <button className="btn-outline h-9" onClick={() => onChange([...nodes, { id: `n_${Date.now()}`, label: "Nouvelle sous-branche", kind: "competence", note: "" }])} data-testid="content-node-add"><Plus size={14} /> Ajouter une sous-branche</button>
+        : <p className="text-[11px] text-muted-foreground">4 sous-branches maximum par domaine (place disponible sur l'arbre).</p>}
     </div>
   );
 }
@@ -86,16 +87,18 @@ export function ContentEditor() {
   const [docs, setDocs] = useState<ContentDoc[]>([]);
   const [draft, setDraft] = useState<Item>(clone(DOMAINS[0]));
   const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
   const items: Item[] = kind === "domain" ? DOMAINS : FRAGILITIES;
   const load = () => api<ContentDoc[]>("/content").then(setDocs);
   useEffect(() => { load(); }, []);
   useEffect(() => { setDraft(clone(items.find((i) => i.id === id) ?? items[0])); setMsg(""); }, [kind, id]);
   const doc = docs.find((d) => d.kind === kind && d.item_id === id);
   const set = (p: Partial<Item>) => setDraft({ ...draft, ...p } as Item);
-  const pickKind = (k: ContentKind) => { setKind(k); setId((k === "domain" ? DOMAINS : FRAGILITIES)[0].id); };
+  const pickKind = (k: ContentKind) => { const first = (k === "domain" ? DOMAINS : FRAGILITIES)[0] as Item; setDraft(clone(first)); setKind(k); setId(first.id); };
   const save = async () => {
     const data = tidy(draft);
-    await send(`/admin/content/${kind}/${id}`, "PUT", { data });
+    try { await send(`/admin/content/${kind}/${id}`, "PUT", { data }); } catch (e) { setMsg(""); return setErr((e as Error).message); }
+    setErr("");
     applyContent(kind, id, data); await load(); setMsg("Enregistré ✓ — visible par toute l'équipe");
   };
   const reset = async () => {
@@ -119,6 +122,7 @@ export function ContentEditor() {
         <button className="btn-primary" onClick={save} data-testid="content-save-button"><Save size={15} /> Enregistrer</button>
         {doc && <button className="btn-outline" onClick={reset} data-testid="content-reset-button"><RotateCcw size={14} /> Texte d'origine</button>}
         {msg && <span className="text-xs text-emerald-300" data-testid="content-message">{msg}</span>}
+        {err && <span className="text-xs text-red-300" data-testid="content-error">{err}</span>}
       </div>
     </div>
   );

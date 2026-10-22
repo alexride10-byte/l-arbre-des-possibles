@@ -5,6 +5,15 @@ import { api, send, type Child, type Role, type User } from "@/lib/api";
 import { Portrait } from "@/components/layout/Portrait";
 import { frDate } from "@/lib/icons";
 import { ContentEditor } from "@/components/admin/ContentEditor";
+import { DOMAINS } from "@/data/domains";
+import { FRAGILITIES } from "@/data/fragilities";
+
+const itemName = (ref: string) => {
+  const [kind, id] = ref.split(":");
+  return kind === "domain" ? `domaine « ${DOMAINS.find((d) => d.id === id)?.name ?? id} »` : kind === "fragility" ? `fragilité « ${FRAGILITIES.find((f) => f.id === id)?.label ?? id} »` : ref;
+};
+const detailText = (l: { action: string; detail?: string }) =>
+  !l.detail ? "" : l.action.startsWith("content.") ? itemName(l.detail) : l.action === "auth.login" ? `par ${l.detail === "email" ? "e-mail" : l.detail}` : l.detail;
 
 interface Log { log_id: string; at: string; action: string; user_email?: string; role?: string; child_id?: string; detail?: string }
 const ROLES: [Role, string][] = [["educator", "Éducateur / professionnel"], ["direction", "Direction / responsable"], ["admin", "Administrateur de structure"], ["internal", "Équipe Enfance+"]];
@@ -73,6 +82,8 @@ const ACTIONS: Record<string, string> = {
   "auth.login": "Connexion", "auth.login_failed": "Échec de connexion", "auth.register": "Inscription", "auth.email_verified": "E-mail vérifié",
   "auth.logout": "Déconnexion", "admin.user_update": "Compte modifié (rôle / statut)", "admin.assign": "Attribution de dossier",
   "setup.admin_created": "Installation : compte admin créé", "content.update": "Contenu modifié", "content.reset": "Contenu remis par défaut", "child.create": "Dossier enfant créé",
+  "auth.password_reset": "Mot de passe réinitialisé", "auth.reset_requested": "Demande de réinitialisation", "auth.session_revoked": "Session révoquée",
+  "message.send": "Message envoyé", "message.thread_create": "Conversation créée", "message.thread_read": "Conversation lue",
 };
 const CHILD_ACTIONS: Record<string, Record<string, string>> = {
   "": { GET: "Dossier consulté", PUT: "Fiche enfant modifiée", DELETE: "Dossier supprimé" },
@@ -102,10 +113,10 @@ function AuditLog() {
       <input className="field" placeholder="Filtrer (action, personne, enfant)…" value={q} onChange={(e) => setQ(e.target.value)} data-testid="audit-filter" />
       <div className="max-h-[60vh] overflow-y-auto rounded-xl border border-border">
         {shown.map((l) => (
-          <p key={l.log_id} className="grid grid-cols-[150px_200px_1fr] gap-3 border-b border-border/60 px-3 py-2 text-xs" data-testid="audit-row">
+          <p key={l.log_id} className="grid grid-cols-[130px_260px_1fr] gap-3 border-b border-border/60 px-3 py-2 text-xs" data-testid="audit-row">
             <span className="text-muted-foreground">{frDate(l.at)} {new Date(l.at).toLocaleTimeString("fr-FR").slice(0, 5)}</span>
             <span className="truncate">{l.user_email ?? "—"} {l.role && <span className="text-muted-foreground">({ROLE_FR[l.role] ?? l.role})</span>}</span>
-            <span className="truncate" title={`${l.action} ${l.detail ?? ""}`}><b className="text-gold" data-testid="audit-action">{actionLabel(l.action)}</b>{l.child_id && ` · ${childName(l.child_id)}`}{l.detail && ` · ${l.detail}`}</span>
+            <span className="truncate" title={`${l.action} ${l.detail ?? ""}`}><b className="text-gold" data-testid="audit-action">{actionLabel(l.action)}</b>{l.child_id && ` · ${childName(l.child_id)}`}{detailText(l) && ` · ${detailText(l)}`}</span>
           </p>
         ))}
       </div>

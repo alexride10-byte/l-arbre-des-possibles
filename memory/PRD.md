@@ -64,3 +64,11 @@ Application psychologique sur le développement de l'enfant, style RPG (maquette
 - Hébergement : render.yaml = API Python + site statique Render ; DEPLOIEMENT.md à jour ; vercel.json supprimé.
 - Testé : iteration_7 (93 pourcent) puis correctifs (orbes recouvertes, label mobile, clic racines) vérifiés.
 - Backlog : chronologie, interventions, sources, IA locale sur le launcher ; Calendrier/Rapports/Notifications côté pro.
+
+## 2026-06 — Options administrateur (iteration 8)
+- Visuel manga remis en accueil (Login) ; launcher SVG seulement à /decouvrir.
+- Installation : GET /api/setup/status, POST /api/setup (1 seule fois, verrou app_settings, case données de démo). SEED_DEMO env (true en aperçu, false sur Render) ; SetupScreen dans Login.tsx.
+- Contenus modifiables : collection content, GET /api/content, PUT/DELETE /api/admin/content/{domain|fragility}/{id} (validé pydantic, 4 sous-branches max), appliqués sur place via lib/content.ts ; onglet Admin « Contenus » (ContentEditor).
+- Notes par enfant : collection child_notes, /api/children/{id}/notes CRUD (équipe + admin lisent, auteur/admin modifient, direction lecture) ; ChildNotes sur la page Profil.
+- Historique des actions : libellés français, noms d'enfants, déconnexion tracée.
+- Backlog : Calendrier, Rapports, Notifications ; édition des racines/facteurs.

@@ -3,8 +3,8 @@
 Architecture : **site web (React/Vite) + serveur (FastAPI) sur Render**, **base de données sur MongoDB Atlas**.
 Le fichier `render.yaml` à la racine crée les deux services en une fois.
 
-- `https://<votre-site>.onrender.com/` → launcher public (arbre interactif, profil fictif, aucune connexion requise)
-- `https://<votre-site>.onrender.com/connexion` → espace professionnel (comptes, messagerie, administration)
+- `https://<votre-site>.onrender.com/` → accueil manga et connexion à l'espace professionnel
+- **Premier lancement** : un écran « Installation d'Enfance+ » vous demande de créer le compte administrateur (e-mail + mot de passe). Vous pouvez cocher « Ajouter les données de démonstration ». Cet écran disparaît ensuite définitivement.
 
 ## 0. Envoyer le code sur GitHub
 Dans Emergent : bouton **Save** → **Save to GitHub** → choisissez le dépôt et la branche.
@@ -23,7 +23,6 @@ Dans Emergent : bouton **Save** → **Save to GitHub** → choisissez le dépôt
 |---|---|---|
 | enfance-plus-api | `MONGO_URL` | l'adresse copiée sur Atlas |
 | enfance-plus-api | `CORS_ORIGINS` | l'adresse du site, ex. `https://enfance-plus.onrender.com` |
-| enfance-plus-api | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | le compte administrateur créé au démarrage |
 | enfance-plus-api | `EMERGENT_LLM_KEY` | votre clé universelle Emergent (Profil → Universal Key) pour l'IA de l'espace pro |
 | enfance-plus | `REACT_APP_BACKEND_URL` | l'adresse du serveur, ex. `https://enfance-plus-api.onrender.com` (sans `/` final) |
 

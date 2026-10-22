@@ -350,7 +350,9 @@ async def revoke_session(sid: str, request: Request):
 async def logout(request: Request, response: Response):
     token = read_token(request)
     if token:
-        await db.user_sessions.delete_one({"session_token": token})
+        session = await db.user_sessions.find_one_and_delete({"session_token": token})
+        if session:
+            await audit(await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0}), "auth.logout", request=request)
     response.delete_cookie("session_token", path="/", secure=True, samesite="none")
     return {"ok": True}
 
@@ -1063,11 +1065,46 @@ async def setup(body: SetupIn, request: Request, response: Response):
 
 
 # ---------- Contenus modifiables ----------
-CONTENT_KINDS = ("domain", "fragility")
+FRAGILITY_IDS = ["f-anxiete", "f-impulsivite", "f-concentration", "f-sommeil", "f-regulation", "f-conflits"]
+CONTENT_IDS = {"domain": DOMAIN_IDS, "fragility": FRAGILITY_IDS}
+Txt = Field(min_length=1, max_length=400)
+
+
+class NodeContent(BaseModel):
+    id: str = Field(min_length=1, max_length=40)
+    label: str = Txt
+    kind: Literal["ressource", "competence", "difficulte", "besoin"]
+    note: str = Field(max_length=400)
+
+
+class DomainContent(BaseModel):
+    model_config = {"extra": "ignore"}
+    id: str
+    name: str = Field(min_length=1, max_length=80)
+    intro: str = Field(max_length=1000)
+    nodes: list[NodeContent] = Field(min_length=1, max_length=4)
+    strengths: list[str] = []
+    fragilities: list[str] = []
+    pistes: list[str] = []
+    resources: list[str] = []
+
+
+class FragilityContent(BaseModel):
+    model_config = {"extra": "ignore"}
+    id: str
+    label: str = Field(min_length=1, max_length=80)
+    intro: str = Field(max_length=1000)
+    hypotheses: list[str] = []
+    interventions: list[str] = []
 
 
 class ContentIn(BaseModel):
     data: dict
+
+
+def check_content(kind: str, item_id: str):
+    if item_id not in CONTENT_IDS.get(kind, []):
+        raise HTTPException(400, "Contenu inconnu")
 
 
 @api.get("/content")
@@ -1080,9 +1117,14 @@ async def list_content(request: Request):
 async def save_content(kind: str, item_id: str, body: ContentIn, request: Request):
     admin = await current_user(request)
     require_role(admin, "admin")
-    if kind not in CONTENT_KINDS:
-        raise HTTPException(400, "Type de contenu inconnu")
-    doc = {"kind": kind, "item_id": item_id, "data": body.data, "updated_at": now_iso(), "updated_by": admin["name"]}
+    check_content(kind, item_id)
+    try:
+        data = (DomainContent if kind == "domain" else FragilityContent)(**body.data).model_dump()
+    except ValueError:
+        raise HTTPException(400, "Contenu incomplet ou invalide (nom et sous-branches obligatoires)")
+    if data["id"] != item_id:
+        raise HTTPException(400, "Identifiant incohérent")
+    doc = {"kind": kind, "item_id": item_id, "data": data, "updated_at": now_iso(), "updated_by": admin["name"]}
     await db.content.update_one({"kind": kind, "item_id": item_id}, {"$set": doc}, upsert=True)
     await audit(admin, "content.update", detail=f"{kind}:{item_id}", request=request)
     return doc
@@ -1092,6 +1134,7 @@ async def save_content(kind: str, item_id: str, body: ContentIn, request: Reques
 async def reset_content(kind: str, item_id: str, request: Request):
     admin = await current_user(request)
     require_role(admin, "admin")
+    check_content(kind, item_id)
     await db.content.delete_one({"kind": kind, "item_id": item_id})
     await audit(admin, "content.reset", detail=f"{kind}:{item_id}", request=request)
     return {"ok": True}
