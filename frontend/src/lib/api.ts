@@ -2,7 +2,7 @@ import type { Quest } from "@/data/quests";
 
 export const API = `${import.meta.env.REACT_APP_BACKEND_URL}/api`;
 
-export type Role = "admin" | "direction" | "educator" | "internal";
+export type Role = "admin" | "direction" | "educator" | "parent" | "internal";
 export interface User { user_id: string; email: string; name: string; picture?: string; audience: "pro" | "parent"; auth_enabled?: boolean; role?: Role | null; status?: "pending" | "active" | "revoked"; email_verified?: boolean; created_at?: string }
 export interface Avatar { face: number; hair: number; accessory: number; portrait?: string | null }
 export type StepStatus = "fait" | "en cours" | "à venir";
@@ -18,7 +18,7 @@ export interface AiMessage { role: "user" | "assistant"; text: string; created_a
 
 const TOKEN_KEY = "enfanceplus.token";
 export const setToken = (t: string | null) => (t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY));
-const authHeaders = (): Record<string, string> => {
+export const authHeaders = (): Record<string, string> => {
   const t = localStorage.getItem(TOKEN_KEY);
   return { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
 };

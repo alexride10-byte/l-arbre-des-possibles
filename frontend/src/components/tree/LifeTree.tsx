@@ -5,7 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Heart, Users, Brain, BookOpen, Activity, Sprout, House, AlertTriangle, Zap, Focus, Moon, Wind, Handshake } from "lucide-react";
 import { FactorNetwork } from "./FactorNetwork";
 import { AvatarIllustration, type AvatarOptions } from "@/components/layout/AvatarIllustration";
-import { portraitSrc } from "@/components/layout/Portrait";
+import { usePortraitSrc } from "@/components/layout/Portrait";
 import { PAINTED_TREE } from "@/lib/assets";
 import { FRAGILITIES } from "@/data/fragilities";
 
@@ -39,6 +39,7 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
   const mobile = useIsMobile();
   const svgRef = useRef<SVGSVGElement>(null);
   const [height, setHeight] = useState(830);
+  const portraitUrl = usePortraitSrc(avatar.portrait);
   useEffect(() => {
     const el = svgRef.current; if (!el) return;
     const observer = new ResizeObserver(([entry]) => {
@@ -270,7 +271,7 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
           <g pointerEvents="none" opacity={focusId || frag ? .3 : 1} data-testid="tree-portrait">
             <defs><clipPath id="portrait-clip"><circle cx="500" cy="506" r="56" /></clipPath></defs>
             <circle cx="500" cy="506" r="63" fill="none" stroke="var(--gold)" strokeWidth="1.2" opacity=".5" filter="url(#halo)" />
-            <image href={portraitSrc(avatar.portrait) ?? ""} x="444" y="450" width="112" height="112" clipPath="url(#portrait-clip)" preserveAspectRatio="xMidYMid slice" />
+            <image href={portraitUrl ?? ""} x="444" y="450" width="112" height="112" clipPath="url(#portrait-clip)" preserveAspectRatio="xMidYMid slice" />
             <circle cx="500" cy="506" r="56" fill="none" stroke="var(--gold)" strokeWidth="2.2" />
           </g>
         ) : <svg x="444" y="455" width="112" height="146" pointerEvents="none" opacity={focusId || frag ? .3 : 1}><AvatarIllustration options={avatar} /></svg>}

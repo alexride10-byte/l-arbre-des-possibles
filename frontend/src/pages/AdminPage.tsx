@@ -18,7 +18,7 @@ const detailText = (l: { action: string; detail?: string }) =>
   !l.detail ? "" : l.action.startsWith("content.") ? itemName(l.detail) : l.action === "auth.login" ? `par ${l.detail === "email" ? "e-mail" : l.detail}` : l.detail;
 
 interface Log { log_id: string; at: string; action: string; user_email?: string; role?: string; child_id?: string; detail?: string }
-const ROLES: [Role, string][] = [["educator", "Éducateur / professionnel"], ["direction", "Direction / responsable"], ["admin", "Administrateur de structure"], ["internal", "Équipe Enfance+"]];
+const ROLES: [Role, string][] = [["educator", "Éducateur / professionnel"], ["direction", "Direction / responsable"], ["parent", "Parent / famille (lecture seule)"], ["admin", "Administrateur de structure"], ["internal", "Équipe Enfance+"]];
 const STATUS: Record<string, string> = { pending: "En attente", active: "Actif", revoked: "Révoqué" };
 
 function Accounts() {
@@ -95,7 +95,7 @@ const CHILD_ACTIONS: Record<string, Record<string, string>> = {
   assistant: { POST: "Question à l'assistant IA", DELETE: "Historique IA effacé" }, shares: { POST: "Partage ajouté", DELETE: "Partage retiré" },
   avatar: { POST: "Avatar généré" }, events: { POST: "Rendez-vous ajouté", PUT: "Rendez-vous modifié", DELETE: "Rendez-vous supprimé" }, tree: { POST: "Arbre personnalisé généré", DELETE: "Arbre personnalisé retiré" },
 };
-const ROLE_FR: Record<string, string> = { admin: "admin", direction: "direction", educator: "éducateur", internal: "Enfance+" };
+const ROLE_FR: Record<string, string> = { admin: "admin", direction: "direction", educator: "éducateur", parent: "parent", internal: "Enfance+" };
 
 export function actionLabel(action: string) {
   const [method, path] = action.split(" ");

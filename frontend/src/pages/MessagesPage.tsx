@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Lock, Plus, Send, MessagesSquare, X } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { api, send } from "@/lib/api";
-import { portraitSrc } from "@/components/layout/Portrait";
+import { AuthImg } from "@/components/layout/Portrait";
 import { frDate } from "@/lib/icons";
 
 interface Thread { thread_id: string; title: string; child_id?: string | null; child_name?: string; child_portrait?: string | null; participant_names: string[]; last_at: string; last_text: string; last_author?: string; unread: number }
 interface Msg { msg_id: string; author_id: string; author_name: string; text: string; created_at: string }
 interface Contact { user_id: string; name: string; role?: string | null }
-const ROLE: Record<string, string> = { admin: "Admin", direction: "Direction", educator: "Éducateur", internal: "Équipe Enfance+" };
+const ROLE: Record<string, string> = { admin: "Admin", direction: "Direction", educator: "Éducateur", parent: "Parent", internal: "Équipe Enfance+" };
 const time = (iso: string) => `${frDate(iso)} · ${new Date(iso).toLocaleTimeString("fr-FR").slice(0, 5)}`;
 
 function NewThread({ onDone, onCancel }: { onDone: (id: string) => void; onCancel: () => void }) {
@@ -100,7 +100,7 @@ export default function MessagesPage() {
         <ul className="flex-1 overflow-y-auto">
           {threads.map((t) => (
             <li key={t.thread_id}><button onClick={() => { setSel(t.thread_id); setCompose(false); }} className={`thread-row ${sel === t.thread_id ? "thread-row-on" : ""}`} data-testid={`thread-${t.thread_id}`}>
-              <span className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-border bg-muted">{t.child_portrait ? <img src={portraitSrc(t.child_portrait)!} alt="" className="h-full w-full object-cover" /> : <MessagesSquare size={18} className="m-3 text-muted-foreground" />}</span>
+              <span className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-border bg-muted">{t.child_portrait ? <AuthImg src={t.child_portrait} alt="" className="h-full w-full object-cover" /> : <MessagesSquare size={18} className="m-3 text-muted-foreground" />}</span>
               <span className="min-w-0 flex-1 text-left">
                 <span className="flex items-center gap-2"><span className="truncate text-sm font-semibold">{t.title}</span><span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{frDate(t.last_at)}</span></span>
                 <span className="block truncate text-xs text-muted-foreground">{t.child_name && <span className="text-gold">{t.child_name} · </span>}{t.last_author}: {t.last_text}</span>

@@ -48,7 +48,7 @@ export default function ProfilePage() {
           <label className="text-xs text-muted-foreground">Classe / niveau<input className="field mt-1" value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} data-testid="profile-grade-input" /></label>
         </div>
         <label className="block text-xs text-muted-foreground">Notes de contexte<textarea rows={4} className="field mt-1" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} data-testid="profile-notes-input" /></label>
-        {!canWrite && <p className="text-xs text-amber-200" data-testid="profile-readonly">Accès en lecture seule (direction).</p>}
+        {!canWrite && <p className="text-xs text-amber-200" data-testid="profile-readonly">Accès en lecture seule.</p>}
         {err && <p className="text-xs text-red-300" data-testid="profile-error">{err}</p>}
         {canWrite && <button className="btn-primary" onClick={save} data-testid="profile-save-button"><Save size={15} /> {saved ? "Enregistré ✓" : "Enregistrer"}</button>}
       </section>

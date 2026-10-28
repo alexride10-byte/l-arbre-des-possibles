@@ -9,8 +9,14 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
 
+import asyncio
 import base64
+import hmac
+import logging
+import re
 import secrets
+import smtplib
+from email.message import EmailMessage
 
 import bcrypt
 import httpx
@@ -18,7 +24,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse, Response as RawResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import DuplicateKeyError
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from starlette.middleware.cors import CORSMiddleware
 from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone, ImageContent
 
@@ -41,11 +47,27 @@ def now_iso() -> str:
 
 
 # ---------- Models ----------
+IMG = "https://static.prod-images.emergentagent.com/jobs/5a8bc270-5ed8-4704-a01d-2ff7d09abd2b/images/"
+PORTRAIT_RE = re.compile(r"^/api/avatars/[0-9a-f]{32}$|^" + re.escape(IMG) + r"[0-9a-f]{64}\.(jpe?g|png|webp)$")
+
+
+def safe_portrait(v: Optional[str]) -> Optional[str]:
+    # Only our own stored images or the bundled library: the server fetches this URL (SSRF otherwise)
+    if v and not PORTRAIT_RE.match(v):
+        raise ValueError("Portrait non autorisé")
+    return v or None
+
+
 class Avatar(BaseModel):
     face: int = 0
     hair: int = 0
     accessory: int = 0
     portrait: Optional[str] = None
+
+    @field_validator("portrait")
+    @classmethod
+    def _portrait(cls, v):
+        return safe_portrait(v)
 
 
 class ChildIn(BaseModel):
@@ -96,8 +118,13 @@ class AskIn(BaseModel):
 # ---------- Auth ----------
 AUTH_ENABLED = os.environ["AUTH_ENABLED"].lower() == "true"
 EMAIL_SIMULATED = os.environ["EMAIL_MODE"] == "simulated"
+APP_URL = os.environ.get("APP_URL", "").rstrip("/")
+logger = logging.getLogger("enfance")
+if AUTH_ENABLED and EMAIL_SIMULATED:
+    logger.warning("EMAIL_MODE=simulated : les liens de vérification et de réinitialisation sont renvoyés par l'API. "
+                   "À n'utiliser qu'en développement.")
 DEMO_USER = {"user_id": "demo-user", "email": "demo@enfanceplus.local", "name": "Mode démo", "picture": None, "audience": "pro"}
-ROLES = ["admin", "direction", "educator", "internal"]
+ROLES = ["admin", "direction", "educator", "parent", "internal"]
 SESSION_DAYS = 7
 
 
@@ -183,8 +210,39 @@ async def issue_email_token(user: dict, kind: Literal["verify", "reset"]) -> Opt
                                       "expires_at": datetime.now(timezone.utc) + timedelta(hours=24 if kind == "verify" else 1)})
     path = "verifier" if kind == "verify" else "reinitialiser"
     link = f"/{path}?token={token}"
-    await db.outbox.insert_one({"to": user["email"], "kind": kind, "link": link, "created_at": now_iso()})
-    return link if EMAIL_SIMULATED else None
+    if EMAIL_SIMULATED:
+        # Development only: the link is shown on screen instead of being e-mailed
+        await db.outbox.insert_one({"to": user["email"], "kind": kind, "link": link, "created_at": now_iso()})
+        return link
+    await send_email(user["email"], *EMAIL_TEXTS[kind](f"{APP_URL}{link}"))
+    return None
+
+
+EMAIL_TEXTS = {
+    "verify": lambda url: ("Enfance+ : confirmez votre adresse e-mail",
+                           f"Bonjour,\n\nPour activer votre compte Enfance+, ouvrez ce lien (valable 24 h) :\n{url}\n\n"
+                           "Si vous n'avez pas créé de compte, ignorez ce message."),
+    "reset": lambda url: ("Enfance+ : réinitialisation du mot de passe",
+                          f"Bonjour,\n\nPour choisir un nouveau mot de passe, ouvrez ce lien (valable 1 h) :\n{url}\n\n"
+                          "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message."),
+}
+
+
+async def send_email(to: str, subject: str, body: str):
+    def _send():
+        msg = EmailMessage()
+        msg["From"], msg["To"], msg["Subject"] = os.environ["EMAIL_FROM"], to, subject
+        msg.set_content(body)
+        with smtplib.SMTP(os.environ["SMTP_HOST"], int(os.environ.get("SMTP_PORT", "587")), timeout=20) as s:
+            s.starttls()
+            s.login(os.environ["SMTP_USER"], os.environ["SMTP_PASSWORD"])
+            s.send_message(msg)
+
+    try:
+        await asyncio.to_thread(_send)
+    except Exception:
+        # Never reveal the link in the response; the user can ask for a new one
+        logger.exception("Envoi d'e-mail impossible (%s)", subject)
 
 
 async def consume_email_token(token: str, kind: str) -> dict:
@@ -360,7 +418,7 @@ async def logout(request: Request, response: Response):
 # ---------- Administration ----------
 class UserAdminIn(BaseModel):
     status: Optional[Literal["pending", "active", "revoked"]] = None
-    role: Optional[Literal["admin", "direction", "educator", "internal"]] = None
+    role: Optional[Literal["admin", "direction", "educator", "parent", "internal"]] = None
 
 
 class AssignIn(BaseModel):
@@ -437,23 +495,38 @@ def new_child_doc(user_id: str, data: ChildIn) -> dict:
 
 
 # ---------- Children ----------
+def share_of(user: dict, child: dict) -> Optional[dict]:
+    return next((x for x in child.get("shares", []) if x["email"] == user["email"].lower()), None)
+
+
 def can_read(user: dict, child: dict) -> bool:
     role = user.get("role")
     if role in ("admin", "direction"):
         return True
+    if role == "educator" and (child["user_id"] == user["user_id"] or user["user_id"] in child.get("assigned", [])):
+        return True
+    return role in ("educator", "parent") and share_of(user, child) is not None
+
+
+def can_write(user: dict, child: dict) -> bool:
+    # Direction and parents only consult; a "pro" share gives an educator the right to contribute
+    role = user.get("role")
+    if role == "admin":
+        return True
     if role != "educator":
         return False
+    share = share_of(user, child)
     return (child["user_id"] == user["user_id"] or user["user_id"] in child.get("assigned", [])
-            or user["email"].lower() in [x["email"] for x in child.get("shares", [])])
+            or (share is not None and share["role"] == "pro"))
 
 
-async def get_child(request: Request, child_id: str) -> tuple[dict, dict]:
+async def get_child(request: Request, child_id: str, write: Optional[bool] = None) -> tuple[dict, dict]:
     user = await current_user(request)
     child = await db.children.find_one({"child_id": child_id}, {"_id": 0})
     if not child or not can_read(user, child):
         raise HTTPException(404, "Profil introuvable")
-    if request.method != "GET" and user.get("role") == "direction":
-        raise HTTPException(403, "Accès en lecture seule pour la direction")
+    if (request.method != "GET" if write is None else write) and not can_write(user, child):
+        raise HTTPException(403, "Accès en lecture seule à ce dossier")
     if request.method != "GET" or request.url.path.endswith(child_id):
         await audit(user, f"{request.method} {request.url.path.replace('/api', '', 1)}", child_id, request=request)
     return user, child
@@ -478,7 +551,7 @@ async def list_children(request: Request):
         if user["email"].lower() in [x["email"] for x in k.get("shares", [])] and k["user_id"] != user["user_id"]:
             owner = await db.users.find_one({"user_id": k["user_id"]}, {"_id": 0, "name": 1})
             k["owner_name"] = (owner or {}).get("name", "Structure")
-        k["access"] = "owner" if k["user_id"] == user["user_id"] else "readonly" if role == "direction" else "assigned" if user["user_id"] in k.get("assigned", []) else "structure" if role == "admin" else "shared"
+        k["access"] = "owner" if k["user_id"] == user["user_id"] else "readonly" if not can_write(user, k) else "assigned" if user["user_id"] in k.get("assigned", []) else "structure" if role == "admin" else "shared"
     return kids
 
 
@@ -511,10 +584,15 @@ async def update_child(child_id: str, body: ChildPatch, request: Request):
 
 @api.delete("/children/{child_id}")
 async def delete_child(child_id: str, request: Request):
-    await get_owned_child(request, child_id)
+    user, _ = await get_owned_child(request, child_id)
+    # Right to erasure: remove everything tied to the child, not only the profile
+    thread_ids = [t["thread_id"] for t in await db.threads.find({"child_id": child_id}, {"thread_id": 1}).to_list(1000)]
+    await db.thread_messages.delete_many({"thread_id": {"$in": thread_ids}})
+    await db.threads.delete_many({"child_id": child_id})
+    for coll in (db.observations, db.ai_messages, db.child_notes, db.events, db.avatars):
+        await coll.delete_many({"child_id": child_id})
     await db.children.delete_one({"child_id": child_id})
-    await db.observations.delete_many({"child_id": child_id})
-    await db.ai_messages.delete_many({"child_id": child_id})
+    await audit(user, "child.delete", child_id, request=request)
     return {"ok": True}
 
 
@@ -708,7 +786,9 @@ async def assistant_clear(child_id: str, request: Request):
 
 @api.post("/children/{child_id}/assistant")
 async def assistant_ask(child_id: str, body: AskIn, request: Request):
-    user, child = await get_child(request, child_id)
+    # Read-only users may ask questions, but their exchanges are not added to the shared history
+    user, child = await get_child(request, child_id, write=False)
+    body.save = body.save and can_write(user, child)
     obs = await db.observations.find({"child_id": child_id}, {"_id": 0}).sort("date", -1).to_list(30)
     history = await db.ai_messages.find({"child_id": child_id}, {"_id": 0}).sort("created_at", -1).to_list(10) if body.save else []
     transcript = "\n\n".join(f"{'Utilisateur' if m['role'] == 'user' else 'Assistant'} : {m['text']}" for m in reversed(history))
@@ -771,11 +851,13 @@ async def generate_avatar(child_id: str, body: AvatarGenIn, request: Request):
 
 
 @api.get("/avatars/{avatar_id}")
-async def serve_avatar(avatar_id: str):
+async def serve_avatar(avatar_id: str, request: Request):
+    user = await current_user(request)
     doc = await db.avatars.find_one({"avatar_id": avatar_id}, {"_id": 0})
-    if not doc:
+    child = doc and await fetch_child(doc["child_id"])
+    if not child or not can_read(user, child):
         raise HTTPException(404, "Avatar introuvable")
-    return RawResponse(base64.b64decode(doc["data"]), media_type=doc["mime"], headers={"Cache-Control": "public, max-age=31536000"})
+    return RawResponse(base64.b64decode(doc["data"]), media_type=doc["mime"], headers={"Cache-Control": "private, max-age=86400"})
 
 
 # ---------- Messagerie sécurisée ----------
@@ -900,6 +982,8 @@ async def image_b64(src: str) -> str:
         if not doc:
             raise HTTPException(400, "Portrait introuvable")
         return doc["data"]
+    if not src.startswith(IMG):
+        raise HTTPException(400, "Portrait non autorisé")
     async with httpx.AsyncClient(timeout=30) as http:
         r = await http.get(src)
     if r.status_code != 200:
@@ -947,7 +1031,6 @@ async def reset_tree(child_id: str, request: Request):
 
 
 # ---------- Seed ----------
-IMG = "https://static.prod-images.emergentagent.com/jobs/5a8bc270-5ed8-4704-a01d-2ff7d09abd2b/images/"
 SEED_USERS = [
     ("admin", "", "", "", "admin", "active"),
     ("educ", "educateur@enfanceplus.fr", "Educateur2026!", "Thomas Éducateur", "educator", "active"),
@@ -1032,17 +1115,26 @@ class SetupIn(BaseModel):
     email: str = Field(pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
     password: str = Field(min_length=8, max_length=128)
     demo: bool = False
+    code: str = ""
+
+
+# Set on the host (Render generates it): without it, whoever opens /setup first after a deploy becomes admin
+SETUP_CODE = os.environ.get("SETUP_CODE", "")
 
 
 @api.get("/setup/status")
 async def setup_status():
-    return {"needs_setup": not await db.users.find_one({"role": "admin", "status": "active"}, {"_id": 1})}
+    return {"needs_setup": not await db.users.find_one({"role": "admin", "status": "active"}, {"_id": 1}),
+            "code_required": bool(SETUP_CODE)}
 
 
 @api.post("/setup")
 async def setup(body: SetupIn, request: Request, response: Response):
     if await db.users.find_one({"role": "admin", "status": "active"}, {"_id": 1}):
         raise HTTPException(403, "L'installation a déjà été effectuée")
+    if SETUP_CODE and not hmac.compare_digest(body.code.strip().encode(), SETUP_CODE.encode()):
+        await audit(None, "setup.bad_code", request=request)
+        raise HTTPException(403, "Code d'installation incorrect")
     try:
         await db.app_settings.insert_one({"_id": "setup", "at": now_iso()})
     except DuplicateKeyError:
@@ -1176,6 +1268,10 @@ class EventIn(BaseModel):
 async def readable_child_ids(user: dict) -> Optional[list[str]]:
     if user.get("role") in ("admin", "direction"):
         return None
+    if user.get("role") == "parent":
+        return [c["child_id"] for c in await db.children.find({"shares.email": user["email"].lower()}, {"child_id": 1}).to_list(500)]
+    if user.get("role") != "educator":
+        return []
     return [c["child_id"] for c in await db.children.find({"$or": [{"user_id": user["user_id"]}, {"assigned": user["user_id"]}, {"shares.email": user["email"].lower()}]}, {"child_id": 1}).to_list(500)]
 
 
@@ -1297,7 +1393,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=os.environ["CORS_ORIGINS"].split(","),
-    allow_origin_regex=os.environ["CORS_ORIGIN_REGEX"],
+    allow_origin_regex=os.environ.get("CORS_ORIGIN_REGEX") or None,
     allow_methods=["*"],
     allow_headers=["*"],
 )

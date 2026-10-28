@@ -49,7 +49,7 @@ export function AppProvider({ initialUser, children }: { initialUser: User; chil
   const back = () => { setFocus(null); setNode(null); setFrag(null); setFactorId(null); };
 
   const value: AppCtx = {
-    user, setUser, canWrite: user.role !== "direction",
+    user, setUser, canWrite: user.role !== "direction" && user.role !== "parent" && child?.access !== "readonly",
     logout: async () => { await send("/auth/logout", "POST"); setToken(null); window.location.href = "/"; },
     profiles, child, reloadProfiles, saveChild,
     selectChild: (id) => { localStorage.setItem(KEY, id); setChildId(id); back(); },

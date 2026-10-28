@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Eye, EyeOff, MailCheck, ShieldCheck, Clock3, Ban } from "lucide-react";
-import { send, setToken, type User } from "@/lib/api";
+import { api, send, setToken, type User } from "@/lib/api";
 import { HERO, LOGIN_PORTRAIT } from "@/lib/assets";
 
 type Mode = "login" | "register" | "forgot" | "sent" | "reset" | "verify";
@@ -169,15 +169,17 @@ export function PendingScreen({ user }: { user: User }) {
 }
 
 export function SetupScreen() {
-  const [f, setF] = useState({ name: "", email: "", password: "", confirm: "", demo: false });
+  const [f, setF] = useState({ name: "", email: "", password: "", confirm: "", demo: false, code: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [codeRequired, setCodeRequired] = useState(false);
+  useEffect(() => { api<{ code_required?: boolean }>("/setup/status").then((r) => setCodeRequired(!!r.code_required)).catch(() => {}); }, []);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (f.password !== f.confirm) return setError("Les deux mots de passe ne correspondent pas");
     setError(""); setBusy(true);
     try {
-      const r = await send<User & { session_token: string }>("/setup", "POST", { name: f.name, email: f.email, password: f.password, demo: f.demo });
+      const r = await send<User & { session_token: string }>("/setup", "POST", { name: f.name, email: f.email, password: f.password, demo: f.demo, code: f.code });
       setToken(r.session_token); window.location.href = "/";
     } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };
@@ -187,6 +189,7 @@ export function SetupScreen() {
         <ShieldCheck size={48} className="mx-auto text-amber-300 drop-shadow-[0_0_18px_rgba(251,191,36,.7)]" />
         <h2 className="text-center font-display text-2xl font-semibold">Installation d'Enfance+</h2>
         <p className="text-center text-xs text-muted-foreground">Créez le compte administrateur de votre structure. Cet écran n'apparaît qu'une seule fois.</p>
+        {codeRequired && <Field label="Code d'installation (SETUP_CODE sur Render)" required autoComplete="off" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} data-testid="setup-code-input" />}
         <Field label="Nom et prénom" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Votre nom et prénom" data-testid="setup-name-input" />
         <Field label="Adresse e-mail" type="email" required value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="vous@exemple.fr" data-testid="setup-email-input" />
         <Password value={f.password} onChange={(v) => setF({ ...f, password: v })} testid="setup-password-input" />

@@ -3,7 +3,7 @@ import { Printer, Star, Sprout, TrendingUp } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { DOMAINS } from "@/data/domains";
 import { api } from "@/lib/api";
-import { Portrait } from "@/components/layout/Portrait";
+import { AuthImg, Portrait } from "@/components/layout/Portrait";
 import { DOMAIN_ICON, domainColor, frDate, isoFromFr } from "@/lib/icons";
 import { allQuests } from "@/lib/rpg";
 import { PAINTED_TREE } from "@/lib/assets";
@@ -55,7 +55,7 @@ export default function ReportPage() {
             <p className="text-sm text-slate-300" data-testid="report-month-label">{label.charAt(0).toUpperCase() + label.slice(1)} · {child.age} ans {child.grade && `· ${child.grade}`}</p>
             <p className="text-[11px] text-slate-400">Document confidentiel — réservé à l'équipe et à la famille. Les éléments décrits sont des observations, pas des diagnostics.</p>
           </div>
-          <img src={child.tree_image || PAINTED_TREE} alt="Arbre de vie" className="h-32 w-44 rounded-xl border border-white/10 object-cover" />
+          <AuthImg src={child.tree_image || PAINTED_TREE} alt="Arbre de vie" className="h-32 w-44 rounded-xl border border-white/10 object-cover" />
         </header>
         <Block title="L'arbre de développement" empty={false} testid="report-tree">
           <div className="grid gap-2 sm:grid-cols-2">

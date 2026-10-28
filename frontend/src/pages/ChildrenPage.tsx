@@ -7,7 +7,7 @@ import { ScoreRing } from "@/components/layout/ScoreRing";
 import { globalScore } from "@/lib/rpg";
 import { DOMAINS } from "@/data/domains";
 
-const ROLE_LABEL: Record<string, string> = { admin: "Administrateur de structure", direction: "Direction", educator: "Éducateur", internal: "Équipe Enfance+" };
+const ROLE_LABEL: Record<string, string> = { admin: "Administrateur de structure", direction: "Direction", educator: "Éducateur", parent: "Parent", internal: "Équipe Enfance+" };
 
 export default function ChildrenPage() {
   const { user, profiles, selectChild } = useApp();

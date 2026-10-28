@@ -3,7 +3,7 @@ import { Sparkles, Wand2, Check } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { send, type Child } from "@/lib/api";
 import { PORTRAITS } from "@/lib/assets";
-import { Portrait, portraitSrc } from "@/components/layout/Portrait";
+import { AuthImg, Portrait } from "@/components/layout/Portrait";
 import { xpLevel } from "@/lib/rpg";
 
 const OPTS = {
@@ -65,7 +65,7 @@ export function AvatarStudio() {
           <div className="flex gap-3 overflow-x-auto pb-2">
             {[...history.map((h) => ({ url: h.url, lvl: xpLevel(h.xp).level })), ...(history.length ? [] : [{ url: child.avatar.portrait ?? "", lvl: xpLevel(child.xp).level }])].map((h, i) => (
               <button key={i} disabled={!canWrite} onClick={() => h.url && pick(h.url)} className={`avatar-tile w-28 shrink-0 ${child.avatar.portrait === h.url ? "avatar-tile-on" : ""}`} data-testid={`avatar-history-${i}`}>
-                {portraitSrc(h.url) ? <img src={portraitSrc(h.url)!} alt="" /> : <Portrait avatar={child.avatar} />}<span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 text-[10px]">Niveau {h.lvl}</span>
+                {h.url ? <AuthImg src={h.url} alt="" /> : <Portrait avatar={child.avatar} />}<span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 text-[10px]">Niveau {h.lvl}</span>
               </button>
             ))}
             {[1, 2].map((k) => <div key={k} className="avatar-tile grid w-28 shrink-0 place-items-center border-dashed text-[10px] text-muted-foreground">Niveau {xpLevel(child.xp).level + k}<br />à débloquer</div>)}

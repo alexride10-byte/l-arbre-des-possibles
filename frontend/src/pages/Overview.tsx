@@ -15,7 +15,7 @@ import { FuturePreview } from "@/components/sim/FuturePreview";
 import { ModeOverlay } from "@/components/sim/ModeOverlay";
 import { HORIZONS, doneSteps, projectedLevels } from "@/lib/rpg";
 import { PAINTED_TREE } from "@/lib/assets";
-import { portraitSrc } from "@/components/layout/Portrait";
+import { usePortraitSrc } from "@/components/layout/Portrait";
 import { TreeArtButton } from "@/components/tree/TreeArtButton";
 import { ProgressionChart } from "@/components/sim/ProgressionChart";
 
@@ -30,6 +30,7 @@ export default function Overview({ fullTree = false }: { fullTree?: boolean }) {
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, [back]);
+  const treeImg = usePortraitSrc(child?.tree_image);
   if (!child) return null;
 
   const domain = DOMAINS.find((d) => d.id === focus);
@@ -42,7 +43,7 @@ export default function Overview({ fullTree = false }: { fullTree?: boolean }) {
     if (mode === "comparaison") return [d.id, `${child.initial_levels[d.id] ?? now} → ${now}`];
     return [d.id, `Niv. ${now}/5`];
   }));
-  const treeSrc = portraitSrc(child.tree_image) ?? PAINTED_TREE;
+  const treeSrc = treeImg ?? PAINTED_TREE;
   const onNode = (nid: string) => { const d = DOMAINS.find((x) => x.nodes.some((n) => n.id === nid)); if (d) openNode(d.id, nid); };
 
   const panel = factor ? <FactorPanel factor={factor} onNetwork={() => setFactorId(null)} onBack={back} />

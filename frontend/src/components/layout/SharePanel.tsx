@@ -15,7 +15,7 @@ export function SharePanel() {
   if (!owner) return (
     <section className="panel space-y-2 p-5" data-testid="share-panel">
       <h2 className="flex items-center gap-2 font-display text-xl font-semibold"><Share2 size={17} /> Accès au dossier</h2>
-      <p className="text-sm text-muted-foreground">{child.access === "readonly" ? "Accès direction en lecture seule : consultation des dossiers sans modification." : child.access === "assigned" ? "Ce dossier vous a été attribué par la structure. Vous pouvez observer, évaluer et suivre les activités." : <>Ce profil vous est partagé par <b className="text-foreground">{child.owner_name}</b>. Vous pouvez observer, évaluer et suivre les quêtes ensemble.</>}</p>
+      <p className="text-sm text-muted-foreground">{child.access === "readonly" ? (user.role === "direction" ? "Accès direction en lecture seule : consultation des dossiers sans modification." : <>Ce profil vous est partagé en lecture seule par <b className="text-foreground">{child.owner_name}</b>.</>) :child.access === "assigned" ? "Ce dossier vous a été attribué par la structure. Vous pouvez observer, évaluer et suivre les activités." : <>Ce profil vous est partagé par <b className="text-foreground">{child.owner_name}</b>. Vous pouvez observer, évaluer et suivre les quêtes ensemble.</>}</p>
     </section>
   );
   const add = async (e: React.FormEvent) => {
@@ -26,7 +26,7 @@ export function SharePanel() {
   return (
     <section className="panel space-y-3 p-5" data-testid="share-panel">
       <h2 className="flex items-center gap-2 font-display text-xl font-semibold"><Share2 size={17} /> Suivre à plusieurs</h2>
-      <p className="text-xs text-muted-foreground">Invitez un parent ou un professionnel avec son adresse Google : il verra ce profil dès sa connexion et pourra y contribuer.</p>
+      <p className="text-xs text-muted-foreground">Invitez un parent ou un professionnel avec son adresse Google : une fois son compte validé, il verra ce profil. Un parent le consulte en lecture seule, un professionnel peut y contribuer.</p>
       <form onSubmit={add} className="space-y-2">
         <input type="email" required className="field" placeholder="adresse@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="share-email-input" />
         <div className="grid grid-cols-[1fr_auto] gap-2">

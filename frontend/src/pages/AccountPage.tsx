@@ -6,7 +6,7 @@ import { frDate } from "@/lib/icons";
 
 interface Session { session_id: string; created_at?: string; user_agent: string; ip?: string; current: boolean }
 const ua = (s: string) => `${/Edg\//.test(s) ? "Edge" : /Chrome\//.test(s) ? "Chrome" : /Firefox\//.test(s) ? "Firefox" : /Safari\//.test(s) ? "Safari" : "Navigateur"} · ${/Windows/.test(s) ? "Windows" : /Mac OS/.test(s) ? "macOS" : /Android/.test(s) ? "Android" : /iPhone|iPad/.test(s) ? "iOS" : /Linux/.test(s) ? "Linux" : "Système inconnu"}`;
-const ROLE: Record<string, string> = { admin: "Administrateur de structure", direction: "Direction", educator: "Éducateur / professionnel", internal: "Équipe Enfance+" };
+const ROLE: Record<string, string> = { admin: "Administrateur de structure", direction: "Direction", educator: "Éducateur / professionnel", parent: "Parent / famille (lecture seule)", internal: "Équipe Enfance+" };
 
 export default function AccountPage() {
   const { user, logout } = useApp();
