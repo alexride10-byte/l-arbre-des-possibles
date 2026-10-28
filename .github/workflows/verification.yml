@@ -1,0 +1,53 @@
+name: Vérification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  site:
+    name: Le site se construit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+        env:
+          REACT_APP_BACKEND_URL: https://exemple-api.onrender.com
+
+  serveur:
+    name: Le serveur démarre et les tests passent
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+    env:
+      MONGO_URL: mongodb://localhost:27017
+      DB_NAME: enfance_ci
+      CORS_ORIGINS: https://enfance-plus.onrender.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r backend/requirements.txt pytest==8.3.5 requests==2.32.3
+      - name: Lancer le serveur
+        run: |
+          cd backend && nohup uvicorn server:app --port 8001 > ../server.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:8001/api/ && exit 0; sleep 1; done
+          cat server.log; exit 1
+      - run: pytest -q backend/tests
+        env:
+          API_URL: http://localhost:8001
+      - if: failure()
+        run: cat server.log

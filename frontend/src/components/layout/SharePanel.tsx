@@ -26,7 +26,7 @@ export function SharePanel() {
   return (
     <section className="panel space-y-3 p-5" data-testid="share-panel">
       <h2 className="flex items-center gap-2 font-display text-xl font-semibold"><Share2 size={17} /> Suivre à plusieurs</h2>
-      <p className="text-xs text-muted-foreground">Invitez un parent ou un professionnel avec son adresse Google : il verra ce profil dès sa connexion et pourra y contribuer.</p>
+      <p className="text-xs text-muted-foreground">Invitez un parent ou un professionnel avec son adresse e-mail : il verra ce profil dès sa connexion et pourra y contribuer.</p>
       <form onSubmit={add} className="space-y-2">
         <input type="email" required className="field" placeholder="adresse@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="share-email-input" />
         <div className="grid grid-cols-[1fr_auto] gap-2">

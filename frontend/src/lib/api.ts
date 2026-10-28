@@ -1,6 +1,6 @@
 import type { Quest } from "@/data/quests";
 
-export const API = `${import.meta.env.REACT_APP_BACKEND_URL}/api`;
+export const API = `${String(import.meta.env.REACT_APP_BACKEND_URL ?? "").replace(/\/+$/, "")}/api`;
 
 export type Role = "admin" | "direction" | "educator" | "internal";
 export interface User { user_id: string; email: string; name: string; picture?: string; audience: "pro" | "parent"; auth_enabled?: boolean; role?: Role | null; status?: "pending" | "active" | "revoked"; email_verified?: boolean; created_at?: string }

@@ -1,15 +1,9 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Eye, EyeOff, MailCheck, ShieldCheck, Clock3, Ban } from "lucide-react";
 import { send, setToken, type User } from "@/lib/api";
 import { HERO, LOGIN_PORTRAIT } from "@/lib/assets";
 
-type Mode = "login" | "register" | "forgot" | "sent" | "reset" | "verify";
-
-const googleSignIn = () => {
-  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-  const redirectUrl = window.location.origin + "/";
-  window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-};
+type Mode = "login" | "register" | "forgot" | "sent" | "reset";
 
 function Shell({ children }: { children: ReactNode }) {
   return (
@@ -44,38 +38,13 @@ function Password({ value, onChange, testid }: { value: string; onChange: (v: st
   );
 }
 
-const GoogleBtn = ({ label }: { label: string }) => (
-  <button type="button" onClick={googleSignIn} className="btn-google" data-testid="auth-google-button">
-    <svg viewBox="0 0 48 48" className="h-5 w-5"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" /><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" /><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" /><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" /></svg>
-    {label}
-  </button>
-);
-
-const Or = () => <div className="flex items-center gap-3 text-[11px] text-muted-foreground"><span className="h-px flex-1 bg-border" />OU<span className="h-px flex-1 bg-border" /></div>;
-
-function SimLink({ link }: { link?: string | null }) {
-  if (!link) return null;
-  return (
-    <div className="rounded-lg border border-amber-300/40 bg-amber-300/10 p-3 text-xs" data-testid="simulated-email">
-      <p className="mb-1 font-semibold text-amber-200">E-mail SIMULÉ (MVP, aucun envoi réel)</p>
-      <a href={link} className="break-all text-sky-300 underline" data-testid="simulated-email-link">{window.location.origin}{link}</a>
-    </div>
-  );
-}
-
 export default function Login({ initial = "login" }: { initial?: Mode }) {
   const [mode, setMode] = useState<Mode>(initial);
   const [f, setF] = useState({ name: "", email: "", password: "", accept: false });
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
-  const [link, setLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const token = new URLSearchParams(window.location.search).get("token") ?? "";
-
-  useEffect(() => {
-    if (initial !== "verify") return;
-    send("/auth/verify-email", "POST", { token }).then(() => setInfo("Adresse vérifiée ! Vous pouvez vous connecter.")).catch((e) => setError(e.message));
-  }, [initial, token]);
 
   const run = async (fn: () => Promise<void>) => {
     setError(""); setBusy(true);
@@ -88,32 +57,27 @@ export default function Login({ initial = "login" }: { initial?: Mode }) {
     setToken(r.session_token); window.location.href = "/";
   });
   const register = () => run(async () => {
-    const r = await send<{ simulated_link?: string }>("/auth/register", "POST", { name: f.name, email: f.email, password: f.password, accept_terms: f.accept });
-    setLink(r.simulated_link ?? null); setMode("sent");
+    await send("/auth/register", "POST", { name: f.name, email: f.email, password: f.password, accept_terms: f.accept });
+    setMode("sent");
   });
   const forgot = () => run(async () => {
-    const r = await send<{ simulated_link?: string }>("/auth/forgot-password", "POST", { email: f.email });
-    setLink(r.simulated_link ?? null); setInfo("Si un compte existe, un lien de réinitialisation a été envoyé.");
+    await send("/auth/forgot-password", "POST", { email: f.email });
+    setInfo("Demande enregistrée. Contactez l'administrateur de votre structure : il peut vous créer un lien de réinitialisation depuis l'espace Administration.");
   });
   const reset = () => run(async () => {
     await send("/auth/reset-password", "POST", { token, password: f.password });
     go("login"); setInfo("Mot de passe modifié. Toutes vos sessions ont été fermées : reconnectez-vous.");
   });
-  const resend = () => run(async () => { const r = await send<{ simulated_link?: string }>("/auth/resend-verification", "POST", { email: f.email }); setLink(r.simulated_link ?? null); });
   const submit = (e: React.FormEvent) => { e.preventDefault(); ({ login, register, forgot, reset } as Record<string, () => void>)[mode]?.(); };
 
   return (
     <Shell>
-      {mode !== "sent" && mode !== "verify" && <img src={LOGIN_PORTRAIT} alt="" className="auth-portrait" />}
-      {mode === "sent" || mode === "verify" ? (
+      {mode !== "sent" && <img src={LOGIN_PORTRAIT} alt="" className="auth-portrait" />}
+      {mode === "sent" ? (
         <div className="space-y-4 text-center" data-testid="auth-verify-screen">
           <MailCheck size={56} className="mx-auto text-sky-300 drop-shadow-[0_0_18px_rgba(56,189,248,.8)]" />
-          <h2 className="font-display text-2xl font-semibold">{mode === "sent" ? "Vérifiez votre boîte e-mail" : "Vérification de l'adresse"}</h2>
-          {mode === "sent" && <p className="text-sm text-muted-foreground">Un lien de validation a été envoyé à <b className="text-foreground">{f.email}</b>. Ensuite, l'administrateur de votre structure devra valider votre accès.</p>}
-          <SimLink link={link} />
-          {mode === "sent" && <button className="btn-outline w-full" onClick={resend} disabled={busy} data-testid="auth-resend-button">Renvoyer l'e-mail</button>}
-          {info && <p className="text-sm text-emerald-300" data-testid="auth-info">{info}</p>}
-          {error && <p className="text-sm text-red-300" data-testid="auth-error">{error}</p>}
+          <h2 className="font-display text-2xl font-semibold">Compte créé</h2>
+          <p className="text-sm text-muted-foreground">Votre compte <b className="text-foreground">{f.email}</b> est enregistré. L'administrateur de votre structure doit maintenant valider votre accès et votre rôle. Vous pourrez ensuite vous connecter.</p>
           <button className="text-sm text-sky-300 underline" onClick={() => go("login")} data-testid="auth-back-login">Retour à la connexion</button>
         </div>
       ) : (
@@ -122,7 +86,6 @@ export default function Login({ initial = "login" }: { initial?: Mode }) {
             {{ login: "Bienvenue sur Enfance+", register: "Créer votre compte", forgot: "Mot de passe oublié", reset: "Nouveau mot de passe" }[mode]}
           </h2>
           {mode === "login" && <p className="text-center text-xs text-muted-foreground">Votre espace d'accompagnement éducatif pour révéler le potentiel de chaque enfant.</p>}
-          {(mode === "login" || mode === "register") && <><GoogleBtn label={mode === "login" ? "Continuer avec Google" : "S'inscrire avec Google"} /><Or /></>}
           {mode === "register" && <Field label="Nom et prénom" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Votre nom et prénom" data-testid="auth-name-input" />}
           {mode !== "reset" && <Field label="Adresse e-mail" type="email" required value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="vous@exemple.fr" data-testid="auth-email-input" />}
           {mode !== "forgot" && <Password value={f.password} onChange={(v) => setF({ ...f, password: v })} testid="auth-password-input" />}
@@ -132,11 +95,10 @@ export default function Login({ initial = "login" }: { initial?: Mode }) {
               J'accepte les conditions d'utilisation et la politique de confidentialité (données des enfants protégées, accès tracés).
             </label>
           )}
-          {error && <p className="text-sm text-red-300" data-testid="auth-error">{error}{error.includes("non vérifiée") && <button type="button" onClick={resend} className="ml-2 underline">Renvoyer le lien</button>}</p>}
+          {error && <p className="text-sm text-red-300" data-testid="auth-error">{error}</p>}
           {info && <p className="text-sm text-emerald-300" data-testid="auth-info">{info}</p>}
-          <SimLink link={link} />
           <button type="submit" disabled={busy || (mode === "register" && !f.accept)} className="btn-gold-solid w-full" data-testid="auth-submit-button">
-            {busy ? "…" : { login: "Se connecter", register: "Créer mon compte", forgot: "Envoyer le lien", reset: "Enregistrer" }[mode]}
+            {busy ? "…" : { login: "Se connecter", register: "Créer mon compte", forgot: "Demander un nouveau mot de passe", reset: "Enregistrer" }[mode]}
           </button>
           <div className="space-y-1 text-center text-xs text-muted-foreground">
             {mode === "login" && <><p>Pas encore de compte ? <button type="button" className="text-sky-300 underline" onClick={() => go("register")} data-testid="auth-go-register">Créer un compte</button></p>

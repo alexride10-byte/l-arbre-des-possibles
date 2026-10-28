@@ -1,4 +1,4 @@
-const CACHE = "enfance-v1";
+const CACHE = "enfance-v2";
 const SHELL = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (e) => {

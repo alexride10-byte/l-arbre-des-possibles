@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ShieldCheck, UserCheck, UserX, RotateCcw } from "lucide-react";
+import { ShieldCheck, UserCheck, UserX, RotateCcw, KeyRound } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { api, send, type Child, type Role, type User } from "@/lib/api";
 import { Portrait } from "@/components/layout/Portrait";
@@ -32,6 +32,16 @@ function Accounts() {
     setErr("");
     try { await send(`/admin/users/${u.user_id}`, "PUT", patch); await load(); } catch (e) { setErr((e as Error).message); }
   };
+  const [resetLinks, setResetLinks] = useState<Record<string, string>>({});
+  const resetLink = async (u: User) => {
+    setErr("");
+    try {
+      const r = await send<{ link: string }>(`/admin/users/${u.user_id}/reset-link`, "POST");
+      const full = `${window.location.origin}${r.link}`;
+      setResetLinks({ ...resetLinks, [u.user_id]: full });
+      navigator.clipboard?.writeText(full).catch(() => {});
+    } catch (e) { setErr((e as Error).message); }
+  };
   const sorted = [...users].sort((a, b) => (a.status === "pending" ? -1 : 0) - (b.status === "pending" ? -1 : 0));
   return (
     <div className="space-y-2" data-testid="admin-accounts">
@@ -41,12 +51,14 @@ function Accounts() {
         return (
           <div key={u.user_id} className="admin-row" data-testid={`admin-user-${u.email}`}>
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{u.name} {self && <span className="pill-muted">vous</span>}</p>
-              <p className="truncate text-xs text-muted-foreground">{u.email} · {u.email_verified ? "e-mail vérifié" : "e-mail non vérifié"}</p></div>
+              <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+              {resetLinks[u.user_id] && <p className="mt-1 break-all text-xs text-amber-200" data-testid={`admin-reset-link-${u.email}`}>Lien à transmettre (valable 24 h) : {resetLinks[u.user_id]}</p>}</div>
             <span className={`status-pill status-${u.status}`}>{STATUS[u.status ?? "pending"]}</span>
             <select className="field h-9 w-52" value={role} disabled={self} onChange={(e) => { const r = e.target.value as Role; setRoles({ ...roles, [u.user_id]: r }); if (u.status === "active") update(u, { role: r }); }} aria-label="Rôle" data-testid={`admin-role-${u.email}`}>
               {ROLES.map(([r, l]) => <option key={r} value={r}>{l}</option>)}
             </select>
             {!self && u.status !== "active" && <button className="btn-primary h-9" onClick={() => update(u, { status: "active", role })} data-testid={`admin-approve-${u.email}`}><UserCheck size={14} /> {u.status === "revoked" ? "Réactiver" : "Valider"}</button>}
+            {!self && <button className="btn-outline h-9" onClick={() => resetLink(u)} title="Créer un lien pour choisir un nouveau mot de passe" data-testid={`admin-reset-${u.email}`}><KeyRound size={14} /> Mot de passe</button>}
             {!self && u.status === "active" && <button className="btn-outline h-9 text-red-300" onClick={() => window.confirm(`Révoquer l'accès de ${u.name} ?`) && update(u, { status: "revoked" })} data-testid={`admin-revoke-${u.email}`}><UserX size={14} /> Révoquer</button>}
           </div>
         );

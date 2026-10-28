@@ -10,7 +10,9 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env")
 
 import base64
+import hashlib
 import secrets
+import sys
 
 import bcrypt
 import httpx
@@ -20,15 +22,30 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
-from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone, ImageContent
 
-client = AsyncIOMotorClient(os.environ["MONGO_URL"])
-db = client[os.environ["DB_NAME"]]
-LLM_KEY = os.environ["EMERGENT_LLM_KEY"]
-AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+import ai
 
-app = FastAPI(title="Enfance+ API")
+MONGO_URL = os.environ.get("MONGO_URL", "").strip()
+if not MONGO_URL:
+    sys.exit("ERREUR DE CONFIGURATION : la variable MONGO_URL est vide. Ajoutez l'adresse mongodb+srv://… "
+             "de MongoDB Atlas dans Render → enfance-plus-api → Environment.")
+client = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=10000)
+db = client[os.environ.get("DB_NAME", "enfance_plus")]
+
+app = FastAPI(title="Enfance+ API", docs_url=None, redoc_url=None, openapi_url=None)
 api = APIRouter(prefix="/api")
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    if request.url.path.startswith("/api/") and not request.url.path.startswith("/api/avatars/"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
 
 DOMAIN_IDS = ["emotionnel", "social", "cognitif", "scolaire", "sante", "autonomie", "environnement"]
 DEFAULT_LEVELS = {"emotionnel": 2, "social": 3, "cognitif": 3, "scolaire": 3, "sante": 3, "autonomie": 2, "environnement": 4}
@@ -76,12 +93,8 @@ class StepIn(BaseModel):
 class ObservationIn(BaseModel):
     domain_id: str
     date: str
-    fact: str = Field(min_length=1)
-    context: str = ""
-
-
-class SessionIn(BaseModel):
-    session_id: str
+    fact: str = Field(min_length=1, max_length=4000)
+    context: str = Field(default="", max_length=2000)
 
 
 class MeIn(BaseModel):
@@ -94,8 +107,10 @@ class AskIn(BaseModel):
 
 
 # ---------- Auth ----------
-AUTH_ENABLED = os.environ["AUTH_ENABLED"].lower() == "true"
-EMAIL_SIMULATED = os.environ["EMAIL_MODE"] == "simulated"
+# La connexion est TOUJOURS obligatoire en production. AUTH_ENABLED=false (mode démo où tout le monde
+# est administrateur) n'est accepté qu'en développement local, jamais sur Render.
+AUTH_ENABLED = os.environ.get("AUTH_ENABLED", "true").lower() != "false" or bool(os.environ.get("RENDER"))
+# Pas de service d'e-mail : les liens de réinitialisation sont créés par l'administrateur (voir /admin/users/{uid}/reset-link).
 DEMO_USER = {"user_id": "demo-user", "email": "demo@enfanceplus.local", "name": "Mode démo", "picture": None, "audience": "pro"}
 ROLES = ["admin", "direction", "educator", "internal"]
 SESSION_DAYS = 7
@@ -123,7 +138,12 @@ async def fetch_child(child_id: str) -> dict:
 
 def read_token(request: Request) -> Optional[str]:
     auth = request.headers.get("Authorization", "")
-    return request.cookies.get("session_token") or (auth[7:] if auth.startswith("Bearer ") else None)
+    return (auth[7:] if auth.startswith("Bearer ") else None) or request.cookies.get("session_token")
+
+
+def token_hash(token: str) -> str:
+    """Les jetons de session et de réinitialisation ne sont stockés que sous forme hachée."""
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 async def current_user(request: Request, require_active: bool = True) -> dict:
@@ -136,7 +156,7 @@ async def current_user(request: Request, require_active: bool = True) -> dict:
     token = read_token(request)
     if not token:
         raise HTTPException(401, "Non authentifié")
-    session = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
+    session = await db.user_sessions.find_one({"session_token": token_hash(token)}, {"_id": 0})
     if not session:
         raise HTTPException(401, "Session invalide")
     exp = session["expires_at"]
@@ -160,9 +180,9 @@ def require_role(user: dict, *roles: str):
         raise HTTPException(403, "Action non autorisée pour votre rôle")
 
 
-async def open_session(response: Response, user_id: str, request: Request, token: Optional[str] = None) -> str:
-    token = token or secrets.token_urlsafe(32)
-    await db.user_sessions.insert_one({"session_id": uuid.uuid4().hex[:12], "user_id": user_id, "session_token": token,
+async def open_session(response: Response, user_id: str, request: Request) -> str:
+    token = secrets.token_urlsafe(32)
+    await db.user_sessions.insert_one({"session_id": uuid.uuid4().hex[:12], "user_id": user_id, "session_token": token_hash(token),
                                        "expires_at": datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS), "created_at": now_iso(),
                                        "user_agent": request.headers.get("user-agent", "")[:160], "ip": client_ip(request)})
     response.set_cookie("session_token", token, httponly=True, secure=True, samesite="none", path="/", max_age=SESSION_DAYS * 24 * 3600)
@@ -174,25 +194,26 @@ def hash_password(p: str) -> str:
 
 
 def verify_password(p: str, h: str) -> bool:
-    return bcrypt.checkpw(p.encode(), h.encode())
+    try:
+        return bcrypt.checkpw(p.encode(), h.encode())
+    except ValueError:
+        return False
 
 
-async def issue_email_token(user: dict, kind: Literal["verify", "reset"]) -> Optional[str]:
+async def issue_reset_link(user: dict) -> str:
+    """Lien de réinitialisation valable 24 h, à transmettre par l'administrateur (aucun e-mail n'est envoyé)."""
     token = secrets.token_urlsafe(32)
-    await db.email_tokens.insert_one({"token": token, "user_id": user["user_id"], "kind": kind, "used": False,
-                                      "expires_at": datetime.now(timezone.utc) + timedelta(hours=24 if kind == "verify" else 1)})
-    path = "verifier" if kind == "verify" else "reinitialiser"
-    link = f"/{path}?token={token}"
-    await db.outbox.insert_one({"to": user["email"], "kind": kind, "link": link, "created_at": now_iso()})
-    return link if EMAIL_SIMULATED else None
+    await db.email_tokens.insert_one({"token": token_hash(token), "user_id": user["user_id"], "kind": "reset", "used": False,
+                                      "expires_at": datetime.now(timezone.utc) + timedelta(hours=24)})
+    return f"/reinitialiser?token={token}"
 
 
 async def consume_email_token(token: str, kind: str) -> dict:
-    doc = await db.email_tokens.find_one({"token": token, "kind": kind, "used": False}, {"_id": 0})
+    doc = await db.email_tokens.find_one({"token": token_hash(token), "kind": kind, "used": False}, {"_id": 0})
     exp = doc and (doc["expires_at"] if doc["expires_at"].tzinfo else doc["expires_at"].replace(tzinfo=timezone.utc))
     if not doc or exp < datetime.now(timezone.utc):
         raise HTTPException(400, "Lien invalide ou expiré")
-    await db.email_tokens.update_one({"token": token}, {"$set": {"used": True}})
+    await db.email_tokens.update_one({"token": token_hash(token)}, {"$set": {"used": True}})
     return doc
 
 
@@ -228,26 +249,16 @@ async def register(body: RegisterIn, request: Request):
     email = body.email.lower().strip()
     if await db.users.find_one({"email": email}):
         raise HTTPException(400, "Un compte existe déjà avec cette adresse")
+    # Aucun e-mail n'est envoyé : c'est la validation par l'administrateur qui ouvre l'accès.
     user = {"user_id": f"user_{uuid.uuid4().hex[:12]}", "email": email, "name": body.name.strip(), "picture": None,
-            "password_hash": hash_password(body.password), "email_verified": False, "status": "pending", "role": None,
+            "password_hash": hash_password(body.password), "email_verified": True, "status": "pending", "role": None,
             "audience": "pro", "created_at": now_iso()}
-    await db.users.insert_one(user)
+    try:
+        await db.users.insert_one(user)
+    except DuplicateKeyError:
+        raise HTTPException(400, "Un compte existe déjà avec cette adresse")
     await audit(user, "auth.register", request=request)
-    return {"ok": True, "simulated_link": await issue_email_token(user, "verify")}
-
-
-@api.post("/auth/verify-email")
-async def verify_email(body: TokenIn, request: Request):
-    doc = await consume_email_token(body.token, "verify")
-    await db.users.update_one({"user_id": doc["user_id"]}, {"$set": {"email_verified": True}})
-    await audit({"user_id": doc["user_id"]}, "auth.email_verified", request=request)
     return {"ok": True}
-
-
-@api.post("/auth/resend-verification")
-async def resend_verification(body: EmailIn):
-    user = await db.users.find_one({"email": body.email.lower().strip(), "email_verified": False}, {"_id": 0})
-    return {"ok": True, "simulated_link": await issue_email_token(user, "verify") if user else None}
 
 
 @api.post("/auth/login")
@@ -265,8 +276,6 @@ async def login(body: LoginIn, request: Request, response: Response):
         await audit({"email": email}, "auth.login_failed", request=request)
         raise HTTPException(401, "E-mail ou mot de passe incorrect")
     await db.login_attempts.delete_one({"identifier": ident})
-    if not user.get("email_verified"):
-        raise HTTPException(403, "Adresse e-mail non vérifiée")
     if user.get("status") == "revoked":
         raise HTTPException(403, "Accès révoqué")
     token = await open_session(response, user["user_id"], request)
@@ -276,11 +285,11 @@ async def login(body: LoginIn, request: Request, response: Response):
 
 @api.post("/auth/forgot-password")
 async def forgot_password(body: EmailIn, request: Request):
+    # Ne renvoie JAMAIS de lien ici (sinon n'importe qui pourrait prendre le compte de l'administrateur).
     user = await db.users.find_one({"email": body.email.lower().strip()}, {"_id": 0})
-    link = await issue_email_token(user, "reset") if user else None
     if user:
         await audit(user, "auth.reset_requested", request=request)
-    return {"ok": True, "simulated_link": link}
+    return {"ok": True}
 
 
 @api.post("/auth/reset-password")
@@ -290,28 +299,6 @@ async def reset_password(body: ResetIn, request: Request):
     await db.user_sessions.delete_many({"user_id": doc["user_id"]})
     await audit({"user_id": doc["user_id"]}, "auth.password_reset", request=request)
     return {"ok": True}
-
-
-@api.post("/auth/session")
-async def create_session(body: SessionIn, request: Request, response: Response):
-    async with httpx.AsyncClient(timeout=15) as http:
-        r = await http.get(AUTH_URL, headers={"X-Session-ID": body.session_id})
-    if r.status_code != 200:
-        raise HTTPException(401, "Session Google invalide")
-    data = r.json()
-    email = data["email"].lower()
-    existing = await db.users.find_one({"email": email}, {"_id": 0})
-    if existing:
-        user_id = existing["user_id"]
-        await db.users.update_one({"user_id": user_id}, {"$set": {"name": data["name"], "picture": data.get("picture"), "email_verified": True}})
-    else:
-        user_id = f"user_{uuid.uuid4().hex[:12]}"
-        await db.users.insert_one({"user_id": user_id, "email": email, "name": data["name"], "picture": data.get("picture"),
-                                   "email_verified": True, "status": "pending", "role": None, "audience": "pro", "created_at": now_iso()})
-    token = await open_session(response, user_id, request, data["session_token"])
-    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
-    await audit(user, "auth.login", detail="google", request=request)
-    return {**public_user(user), "session_token": token}
 
 
 @api.get("/auth/me")
@@ -332,7 +319,7 @@ async def my_sessions(request: Request):
     token = read_token(request)
     rows = await db.user_sessions.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(50)
     return [{"session_id": s.get("session_id") or s["session_token"][:8], "created_at": s.get("created_at"), "user_agent": s.get("user_agent", ""),
-             "ip": s.get("ip"), "current": s["session_token"] == token} for s in rows]
+             "ip": s.get("ip"), "current": bool(token) and s["session_token"] == token_hash(token)} for s in rows]
 
 
 @api.delete("/auth/sessions/{sid}")
@@ -350,7 +337,7 @@ async def revoke_session(sid: str, request: Request):
 async def logout(request: Request, response: Response):
     token = read_token(request)
     if token:
-        session = await db.user_sessions.find_one_and_delete({"session_token": token})
+        session = await db.user_sessions.find_one_and_delete({"session_token": token_hash(token)})
         if session:
             await audit(await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0}), "auth.logout", request=request)
     response.delete_cookie("session_token", path="/", secure=True, samesite="none")
@@ -390,6 +377,18 @@ async def admin_update_user(uid: str, body: UserAdminIn, request: Request):
         await db.user_sessions.delete_many({"user_id": uid})
     await audit(admin, "admin.user_update", detail=f"{uid} {patch}", request=request)
     return await db.users.find_one({"user_id": uid}, {"_id": 0, "password_hash": 0})
+
+
+@api.post("/admin/users/{uid}/reset-link")
+async def admin_reset_link(uid: str, request: Request):
+    admin = await current_user(request)
+    require_role(admin, "admin")
+    user = await db.users.find_one({"user_id": uid}, {"_id": 0})
+    if not user:
+        raise HTTPException(404, "Utilisateur introuvable")
+    link = await issue_reset_link(user)
+    await audit(admin, "admin.reset_link", detail=user["email"], request=request)
+    return {"link": link}
 
 
 @api.put("/admin/children/{child_id}/assign")
@@ -665,14 +664,15 @@ async def save_quest(child_id: str, body: QuestIn, request: Request):
 async def generate_quest(child_id: str, body: QuestGenIn, request: Request):
     user, child = await get_child(request, child_id)
     obs = await db.observations.find({"child_id": child_id}, {"_id": 0}).sort("date", -1).to_list(30)
-    chat = LlmChat(api_key=LLM_KEY, session_id=f"quest-{uuid.uuid4().hex[:8]}",
-                   system_message=system_prompt(user, child, obs)).with_model("anthropic", "claude-sonnet-5-5")
     prompt = (f"Crée une quête d'accompagnement pour le domaine « {body.domain_id} »"
               + (f" avec cet objectif : {body.goal}" if body.goal else "")
               + '. Réponds UNIQUEMENT avec un JSON valide, sans texte autour : {"title": "...", "term": "Court terme (2–4 semaines)" | "Moyen terme (1–3 mois)" | "Long terme (3–6 mois)", '
               '"steps": [{"title": "1 à 3 mots", "objective": "...", "action": "...", "resource": "...", "indicator": "..."}]} avec 3 ou 4 étapes concrètes et bienveillantes.')
     try:
-        raw = await chat.send_message(UserMessage(text=prompt))
+        raw = await ai.generate_text(system_prompt(user, child, obs), prompt, json_output=True)
+    except ai.AiError as e:
+        raise HTTPException(502, str(e))
+    try:
         data = json.loads(raw[raw.index("{"): raw.rindex("}") + 1])
         quest = QuestIn(**{**data, "domainId": body.domain_id})
     except Exception:
@@ -713,20 +713,18 @@ async def assistant_ask(child_id: str, body: AskIn, request: Request):
     history = await db.ai_messages.find({"child_id": child_id}, {"_id": 0}).sort("created_at", -1).to_list(10) if body.save else []
     transcript = "\n\n".join(f"{'Utilisateur' if m['role'] == 'user' else 'Assistant'} : {m['text']}" for m in reversed(history))
     prompt = (f"Historique récent de la conversation :\n{transcript}\n\nNouveau message : " if transcript else "") + body.message
-    chat = LlmChat(api_key=LLM_KEY, session_id=f"{child_id}-{uuid.uuid4().hex[:6]}",
-                   system_message=system_prompt(user, child, obs)).with_model("anthropic", "claude-sonnet-5-5")
+    system = system_prompt(user, child, obs)
 
     async def stream():
         parts: list[str] = []
         try:
-            async for ev in chat.stream_message(UserMessage(text=prompt)):
-                if isinstance(ev, TextDelta):
-                    parts.append(ev.content)
-                    yield f"data: {json.dumps({'delta': ev.content})}\n\n"
-                elif isinstance(ev, StreamDone):
-                    break
-        except Exception as e:  # surfaced to the UI
-            yield f"data: {json.dumps({'error': str(e)[:200]})}\n\n"
+            async for delta in ai.stream_text(system, prompt):
+                parts.append(delta)
+                yield f"data: {json.dumps({'delta': delta})}\n\n"
+        except ai.AiError as e:  # message lisible affiché dans l'appli
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        except Exception:
+            yield f"data: {json.dumps({'error': 'Assistant indisponible pour le moment, réessayez.'})}\n\n"
         text = "".join(parts)
         if text and body.save:
             await db.ai_messages.insert_many([
@@ -754,16 +752,14 @@ async def generate_avatar(child_id: str, body: AvatarGenIn, request: Request):
     prompt = (f"High quality anime manga bust portrait of a {child['age']} year old child ({body.gender}), {body.hair}, wearing {body.outfit}, "
               f"accessory: {body.accessory}, expression: {body.expression}, background: {body.background}. Cinematic glowing rim light, "
               "Makoto Shinkai style, warm and kind, centered, square composition, no text, child-friendly.")
-    chat = LlmChat(api_key=LLM_KEY, session_id=f"avatar-{uuid.uuid4().hex[:8]}", system_message="You create child-friendly manga illustrations.")
-    chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
     try:
-        _, images = await chat.send_message_multimodal_response(UserMessage(text=prompt))
+        mime, data = await ai.generate_image(prompt)
+    except ai.AiError as e:
+        raise HTTPException(502, str(e))
     except Exception:
         raise HTTPException(502, "La génération d'avatar a échoué, réessayez.")
-    if not images:
-        raise HTTPException(502, "Aucune image générée, réessayez.")
     avatar_id = uuid.uuid4().hex
-    await db.avatars.insert_one({"avatar_id": avatar_id, "child_id": child_id, "mime": images[0]["mime_type"], "data": images[0]["data"], "created_at": now_iso()})
+    await db.avatars.insert_one({"avatar_id": avatar_id, "child_id": child_id, "mime": mime, "data": data, "created_at": now_iso()})
     url = f"/api/avatars/{avatar_id}"
     await db.children.update_one({"child_id": child_id}, {"$set": {"avatar.portrait": url},
                                  "$push": {"avatar_history": {"url": url, "date": now_iso(), "xp": child["xp"]}}})
@@ -894,17 +890,20 @@ async def unread_total(request: Request):
 BASE_TREE = "https://static.prod-images.emergentagent.com/jobs/5a8bc270-5ed8-4704-a01d-2ff7d09abd2b/images/b91ed0921188bc07c45d1f4fa10d15e9e892068354fddc465e9e311a685f2dfd.jpeg"
 
 
-async def image_b64(src: str) -> str:
+async def image_b64(src: str) -> tuple[str, str]:
+    """Renvoie (mime, base64). Seules nos propres images sont acceptées (pas d'URL arbitraire)."""
     if src.startswith("/api/avatars/"):
-        doc = await db.avatars.find_one({"avatar_id": src.rsplit("/", 1)[1]}, {"_id": 0, "data": 1})
+        doc = await db.avatars.find_one({"avatar_id": src.rsplit("/", 1)[1]}, {"_id": 0, "data": 1, "mime": 1})
         if not doc:
             raise HTTPException(400, "Portrait introuvable")
-        return doc["data"]
+        return doc.get("mime", "image/png"), doc["data"]
+    if not (src == BASE_TREE or src.startswith(IMG)):
+        raise HTTPException(400, "Image source non autorisée")
     async with httpx.AsyncClient(timeout=30) as http:
         r = await http.get(src)
     if r.status_code != 200:
         raise HTTPException(502, "Image source indisponible")
-    return base64.b64encode(r.content).decode()
+    return r.headers.get("content-type", "image/jpeg").split(";")[0], base64.b64encode(r.content).decode()
 
 
 @api.post("/children/{child_id}/tree/generate")
@@ -920,20 +919,17 @@ async def generate_tree(child_id: str, request: Request):
               "sky, city and camera framing unchanged. Only replace the child sitting on the rocks at the base of the trunk (lower right of the trunk) "
               "with the child from the SECOND image: same face, hair, skin tone, clothes and accessories, drawn in the same painterly anime style, "
               "sitting in the same pose and place, seen from three quarter back looking up at the tree, lit by warm golden light. No text.")
-    chat = LlmChat(api_key=LLM_KEY, session_id=f"tree-{uuid.uuid4().hex[:8]}", system_message="You edit child-friendly anime illustrations.")
-    chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
     try:
-        _, images = await chat.send_message_multimodal_response(UserMessage(text=prompt, file_contents=[
-            ImageContent(await image_b64(BASE_TREE)), ImageContent(await image_b64(portrait))]))
+        mime, data = await ai.generate_image(prompt, [await image_b64(BASE_TREE), await image_b64(portrait)])
     except HTTPException:
         raise
+    except ai.AiError as e:
+        raise HTTPException(502, str(e))
     except Exception:
         raise HTTPException(502, "La génération de l'arbre a échoué, réessayez.")
-    if not images:
-        raise HTTPException(502, "Aucune image générée, réessayez.")
     img_id = uuid.uuid4().hex
     await db.avatars.delete_many({"child_id": child_id, "kind": "tree"})
-    await db.avatars.insert_one({"avatar_id": img_id, "child_id": child_id, "mime": images[0]["mime_type"], "data": images[0]["data"], "kind": "tree", "created_at": now_iso()})
+    await db.avatars.insert_one({"avatar_id": img_id, "child_id": child_id, "mime": mime, "data": data, "kind": "tree", "created_at": now_iso()})
     await db.children.update_one({"child_id": child_id}, {"$set": {"tree_image": f"/api/avatars/{img_id}"}})
     return await fetch_child(child_id)
 
@@ -963,19 +959,16 @@ SEED_CHILDREN = [
 ]
 
 
-SEED_DEMO = os.environ["SEED_DEMO"].lower() == "true"
-
-
 async def seed_demo(admin_id: str, admin_name: str):
     for key, email, pwd, name, role, status in SEED_USERS:
         if role == "admin":
             continue
-        existing = await db.users.find_one({"email": email})
-        if not existing:
-            await db.users.insert_one({"user_id": f"seed_{key}", "email": email, "name": name, "picture": None, "password_hash": hash_password(pwd),
+        # Comptes fictifs : mot de passe aléatoire jamais communiqué, donc impossible de s'y connecter
+        # (les anciens mots de passe de démo étaient publiés dans le code).
+        if not await db.users.find_one({"email": email}):
+            await db.users.insert_one({"user_id": f"seed_{key}", "email": email, "name": name, "picture": None,
+                                       "password_hash": hash_password(secrets.token_urlsafe(24)),
                                        "email_verified": True, "status": status, "role": role, "audience": "pro", "created_at": now_iso()})
-        elif not verify_password(pwd, existing.get("password_hash") or hash_password("x")):
-            await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(pwd)}})
     for cid, name, age, grade, portrait, levels in SEED_CHILDREN:
         if not await db.children.find_one({"child_id": cid}):
             doc = new_child_doc(admin_id, ChildIn(name=name, age=age, grade=grade, notes="Profil entièrement fictif (démonstration)"))
@@ -1013,17 +1006,9 @@ async def seed():
     await db.email_tokens.create_index("token")
     await db.child_notes.create_index("child_id")
     await db.events.create_index([("child_id", 1), ("start", 1)])
-    if not SEED_DEMO:
-        return
-    email, pwd = os.environ["ADMIN_EMAIL"], os.environ["ADMIN_PASSWORD"]
-    existing = await db.users.find_one({"email": email})
-    if not existing:
-        await db.users.insert_one({"user_id": "seed_admin", "email": email, "name": "Claire Admin", "picture": None, "password_hash": hash_password(pwd),
-                                   "email_verified": True, "status": "active", "role": "admin", "audience": "pro", "created_at": now_iso()})
-    elif not verify_password(pwd, existing.get("password_hash") or hash_password("x")):
-        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(pwd)}})
-    admin = await db.users.find_one({"email": email})
-    await seed_demo(admin["user_id"], admin["name"])
+    await db.user_sessions.create_index("session_token")
+    await db.user_sessions.create_index("expires_at", expireAfterSeconds=0)  # sessions expirées supprimées automatiquement
+    await db.email_tokens.create_index("expires_at", expireAfterSeconds=0)
 
 
 # ---------- Première installation ----------
@@ -1289,15 +1274,20 @@ async def delete_note(child_id: str, note_id: str, request: Request):
 
 @api.get("/")
 async def root():
-    return {"app": "Enfance+", "status": "ok"}
+    await db.command("ping")  # le contrôle de santé de Render vérifie aussi la base
+    return {"app": "Enfance+", "status": "ok", "ai": ai.enabled()}
 
 
 app.include_router(api)
+# Seule l'adresse du site Enfance+ peut appeler l'API (plus de « tout *.onrender.com »).
+ORIGINS = [(o if o.startswith("http") else f"https://{o}") for o in
+           (x.strip().rstrip("/") for x in os.environ.get("CORS_ORIGINS", "").split(",")) if o]
+if not ORIGINS:
+    print("ATTENTION : CORS_ORIGINS est vide, le site ne pourra pas appeler l'API.", flush=True)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ["CORS_ORIGINS"].split(","),
-    allow_origin_regex=os.environ["CORS_ORIGIN_REGEX"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ORIGINS,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )

@@ -1,50 +1,52 @@
-# Publier Enfance+ sur Render (depuis un téléphone)
+# Mettre Enfance+ en ligne gratuitement (Render + MongoDB Atlas + Gemini)
 
-## Ce que contient le projet
-| Partie | Dossier | Fichier clé |
+## L'appli en 3 morceaux
+| Morceau | Dossier | Hébergé sur |
 |---|---|---|
-| Serveur (FastAPI) | `backend/` | `backend/requirements.txt`, `backend/server.py` |
-| Site (React/Vite) | `frontend/` | `frontend/package.json`, `frontend/yarn.lock` |
-| Configuration Render | racine | `render.yaml` (crée les 2 services) |
+| Le site (React) | `frontend/` | Render « Static Site » (gratuit) |
+| Le serveur (Python/FastAPI) | `backend/` | Render « Web Service » (gratuit) |
+| La base de données (MongoDB) | — | MongoDB Atlas M0 (gratuit) |
+| L'IA | `backend/ai.py` | Google Gemini (clé gratuite) |
 
-Les commandes de `render.yaml` partent de la **racine du dépôt** :
-- Serveur : `pip install -r backend/requirements.txt`, puis `cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT`
-- Site : `cd frontend && yarn install && yarn build` → publie `frontend/build`
+`render.yaml` décrit les deux services Render : il faut passer par **New → Blueprint**, pas par « New → Web Service ».
 
-## Étape 1 — Envoyer la dernière version sur GitHub
-Dans Emergent : **Save → Save to GitHub** (même dépôt, même branche que Render).
-Vérification sur le téléphone : ouvrez votre dépôt sur github.com. Vous devez voir `render.yaml`, `backend/requirements.txt` et `frontend/yarn.lock`.
+## 1. Base de données MongoDB Atlas
+1. https://www.mongodb.com/cloud/atlas/register → créer un cluster **M0 (Free)**, région Europe (Frankfurt).
+2. *Database Access* → ajouter un utilisateur avec un mot de passe **sans caractères spéciaux** (lettres + chiffres).
+3. *Network Access* → `0.0.0.0/0` (Render n'a pas d'adresse IP fixe en gratuit).
+4. *Connect → Drivers* → copier l'adresse `mongodb+srv://…` et y remplacer `<db_password>` par le mot de passe.
 
-## Étape 2 — Base de données MongoDB Atlas (gratuite)
-1. mongodb.com/cloud/atlas → créer un cluster **M0**.
-2. *Database Access* → ajouter un utilisateur + mot de passe.
-3. *Network Access* → ajouter `0.0.0.0/0`.
-4. *Connect → Drivers* → copier l'adresse `mongodb+srv://…`.
+## 2. Clé IA Gemini
+https://aistudio.google.com/apikey → **Create API key** → copier la clé (`AIza…`).
+Sans clé, l'appli fonctionne quand même ; seules les fonctions IA affichent un message.
+La génération d'images (avatars, arbre peint) peut ne pas être incluse dans l'offre gratuite de Gemini.
 
-## Étape 3 — Render
-1. **Si un ancien service a échoué** : ouvrez-le → *Settings* → tout en bas, **Delete**. Supprimez aussi l'ancien Blueprint.
-2. **New → Blueprint** → choisissez le dépôt → Render lit `render.yaml`.
-3. Remplissez les cases demandées :
+## 3. Render
+1. https://dashboard.render.com → **New → Blueprint** → choisir le dépôt `l-arbre-des-possibles`.
+2. Remplir :
 
-| Service | Variable | Quoi mettre |
+| Service | Variable | Valeur |
 |---|---|---|
-| enfance-plus-api | `MONGO_URL` | l'adresse Atlas copiée |
-| enfance-plus-api | `CORS_ORIGINS` | `https://enfance-plus.onrender.com` (l'adresse du site) |
-| enfance-plus-api | `EMERGENT_LLM_KEY` | votre clé universelle Emergent (Profil → Universal Key) |
-| enfance-plus | `REACT_APP_BACKEND_URL` | `https://enfance-plus-api.onrender.com` (sans `/` à la fin) |
+| enfance-plus-api | `MONGO_URL` | l'adresse Atlas |
+| enfance-plus-api | `CORS_ORIGINS` | l'adresse du site, ex. `https://enfance-plus.onrender.com` |
+| enfance-plus-api | `GEMINI_API_KEY` | la clé Gemini |
+| enfance-plus | `REACT_APP_BACKEND_URL` | l'adresse du serveur, ex. `https://enfance-plus-api.onrender.com` |
 
-Les autres réglages (`DB_NAME`, `AUTH_ENABLED`, `EMAIL_MODE`, `SEED_DEMO`, `CORS_ORIGIN_REGEX`, Python 3.11, Node 20) sont déjà remplis.
+3. **Apply**. Si Render donne d'autres adresses que celles ci-dessus, corriger les deux variables d'adresse puis
+   sur le site : **Manual Deploy → Clear build cache & deploy**.
 
-4. **Apply**. Attendez que les 2 services soient « Live » (5 à 10 min).
-5. Si Render vous a donné d'autres adresses que celles du tableau, corrigez `CORS_ORIGINS` et `REACT_APP_BACKEND_URL`, puis sur le site : **Manual Deploy → Clear build cache & deploy**.
+## 4. Premier lancement
+- Test du serveur : `https://<serveur>.onrender.com/api/` → `{"app":"Enfance+","status":"ok",…}`.
+- Ouvrir le site **tout de suite** → écran « Installation d'Enfance+ » → créer le compte administrateur
+  (la première personne qui ouvre le site devient administrateur).
+- Téléphone : Android → Chrome → menu ⋮ → « Installer l'application ». iPhone → Safari → Partager → « Sur l'écran d'accueil ».
 
-## Étape 4 — Premier lancement
-- Test du serveur : `https://enfance-plus-api.onrender.com/api/` doit afficher `{"app":"Enfance+","status":"ok"}`.
-- Ouvrez le site → écran **« Installation d'Enfance+ »** → créez votre compte administrateur (cochez les données de démo si vous le voulez). Cet écran n'apparaît qu'une fois.
-- Installer l'appli : Android → menu ⋮ → « Installer l'application » ; iPhone → Safari → Partager → « Sur l'écran d'accueil ».
+## Fonctionnement des comptes (sans e-mail)
+- Une personne crée son compte → il reste **en attente** → l'administrateur le valide et choisit son rôle (Administration).
+- Mot de passe oublié → l'administrateur clique **« Mot de passe »** sur la fiche de la personne : un lien valable 24 h
+  est créé (et copié) ; il le lui transmet (SMS, messagerie…).
 
 ## Bon à savoir
-- Offre gratuite : le serveur s'endort après 15 min sans visite ; la première ouverture prend ~30 s.
-- Les e-mails sont simulés (`EMAIL_MODE=simulated`).
-- Les fichiers `.env` ne partent jamais sur GitHub : les secrets se saisissent uniquement dans Render.
-- Chaque nouveau « Save to GitHub » redéploie automatiquement.
+- Offre gratuite : le serveur s'endort après 15 min sans visite ; l'appli affiche « Réveil du serveur » (jusqu'à 1 min).
+- Chaque envoi sur GitHub redéploie automatiquement, et GitHub lance la vérification (onglet **Actions**).
+- Aucun secret dans GitHub : les clés se saisissent uniquement dans Render.

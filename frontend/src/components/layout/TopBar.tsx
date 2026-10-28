@@ -90,7 +90,7 @@ function SettingsMenu() {
             ))}
           </div>
           {user.auth_enabled === false
-            ? <p className="text-[11px] text-muted-foreground" data-testid="auth-disabled-note">Connexion Google désactivée (mode démo).</p>
+            ? <p className="text-[11px] text-muted-foreground" data-testid="auth-disabled-note">Connexion désactivée (mode démo local).</p>
             : <button onClick={logout} className="menu-item text-red-300" data-testid="logout-button"><span className="flex items-center gap-2"><LogOut size={14} /> Se déconnecter</span></button>}
         </div>
       )}

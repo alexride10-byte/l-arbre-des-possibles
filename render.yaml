@@ -1,39 +1,54 @@
+# Déploiement Render : New → Blueprint → choisir ce dépôt. Tout est gratuit (plan free).
 services:
+  # Le serveur (API Python/FastAPI)
   - type: web
     name: enfance-plus-api
     runtime: python
+    plan: free
+    region: frankfurt
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT
+    startCommand: cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
     healthCheckPath: /api/
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.11"
-      - key: MONGO_URL
+      - key: MONGO_URL          # adresse mongodb+srv://… de MongoDB Atlas
         sync: false
       - key: DB_NAME
         value: enfance_plus
-      - key: CORS_ORIGINS
+      - key: CORS_ORIGINS       # adresse du site, ex. https://enfance-plus.onrender.com
         sync: false
-      - key: CORS_ORIGIN_REGEX
-        value: "^https://([a-z0-9-]+\\.)*onrender\\.com$"
-      - key: AUTH_ENABLED
-        value: "true"
-      - key: EMAIL_MODE
-        value: simulated
-      - key: SEED_DEMO
-        value: "false"
-      - key: EMERGENT_LLM_KEY
+      - key: GEMINI_API_KEY     # clé gratuite : https://aistudio.google.com/apikey
         sync: false
 
+  # Le site (React, fichiers statiques)
   - type: web
     name: enfance-plus
     runtime: static
-    buildCommand: cd frontend && yarn install && yarn build
+    buildCommand: cd frontend && yarn install --frozen-lockfile && yarn build
     staticPublishPath: frontend/build
     headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
       - path: /sw.js
         name: Cache-Control
         value: no-cache
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
     routes:
       - type: rewrite
         source: /*
@@ -41,5 +56,5 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
-      - key: REACT_APP_BACKEND_URL
+      - key: REACT_APP_BACKEND_URL   # adresse du serveur, ex. https://enfance-plus-api.onrender.com
         sync: false
