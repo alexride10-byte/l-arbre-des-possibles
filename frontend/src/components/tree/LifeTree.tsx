@@ -164,12 +164,9 @@ export function LifeTree({ avatar, focusId, selectedNode, onFocus, onNode, onBac
         {DOMAINS.map((d: Domain, i) => {
           const g = geo[i];
           if (!g) return null;
-          const Icon = DOMAIN_ICONS[i] ?? Sprout;
           const active = focusId === d.id;
           const off = hidden.includes(d.id);
-          
           const dim = (focusId && !active) || !!frag;
-          const shown = active || (showAllNodes && !focusId && !frag);
           return (
             <g key={d.id} className="branch" style={{ opacity: off ? 0.08 : dim ? 0.29 : 1, pointerEvents: off ? "none" : undefined }}>
               {g.twigs.map((t, k) => <path key={k} d={t} fill={`url(#wood-${d.id})`} />)}

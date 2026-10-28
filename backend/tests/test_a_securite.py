@@ -1,4 +1,5 @@
 """Tests de bout en bout lancés par GitHub (voir .github/workflows/verification.yml)."""
+
 import os
 import uuid
 

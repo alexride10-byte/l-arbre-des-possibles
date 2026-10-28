@@ -3,9 +3,10 @@
 Remplace la librairie privée « emergentintegrations » : on parle directement
 à l'API REST de Gemini avec httpx, déjà utilisé par le serveur.
 """
+
 import json
 import os
-from typing import AsyncIterator, Optional
+from collections.abc import AsyncIterator
 
 import httpx
 
@@ -23,7 +24,7 @@ def enabled() -> bool:
     return bool(API_KEY)
 
 
-def _body(system: Optional[str], prompt: str, images: list[tuple[str, str]], config: dict) -> dict:
+def _body(system: str | None, prompt: str, images: list[tuple[str, str]], config: dict) -> dict:
     parts: list[dict] = [{"text": prompt}] + [{"inlineData": {"mimeType": m, "data": d}} for m, d in images]
     body: dict = {"contents": [{"role": "user", "parts": parts}], "generationConfig": config}
     if system:
@@ -57,13 +58,13 @@ def _parts(data: dict) -> list[dict]:
         raise AiError("L'IA n'a rien renvoyé (contenu filtré ?), reformulez la demande.")
 
 
-async def generate_text(system: Optional[str], prompt: str, json_output: bool = False) -> str:
+async def generate_text(system: str | None, prompt: str, json_output: bool = False) -> str:
     config = {"responseMimeType": "application/json"} if json_output else {}
     data = await _post(TEXT_MODEL, _body(system, prompt, [], config))
     return "".join(p.get("text", "") for p in _parts(data))
 
 
-async def stream_text(system: Optional[str], prompt: str) -> AsyncIterator[str]:
+async def stream_text(system: str | None, prompt: str) -> AsyncIterator[str]:
     if not enabled():
         raise AiError("L'IA n'est pas configurée : ajoutez GEMINI_API_KEY sur Render.")
     url = f"{BASE}/{TEXT_MODEL}:streamGenerateContent?alt=sse"
@@ -84,7 +85,7 @@ async def stream_text(system: Optional[str], prompt: str) -> AsyncIterator[str]:
                     continue
 
 
-async def generate_image(prompt: str, images: list[tuple[str, str]] = []) -> tuple[str, str]:
+async def generate_image(prompt: str, images: tuple[tuple[str, str], ...] = ()) -> tuple[str, str]:
     """Renvoie (mime_type, données base64) de la première image produite."""
     data = await _post(IMAGE_MODEL, _body(None, prompt, images, {"responseModalities": ["TEXT", "IMAGE"]}), timeout=120)
     for p in _parts(data):

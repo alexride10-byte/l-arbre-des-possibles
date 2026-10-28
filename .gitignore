@@ -37,3 +37,8 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Python
+__pycache__/
+.ruff_cache/
+.pytest_cache/

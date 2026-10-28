@@ -40,12 +40,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -r backend/requirements.txt pytest==8.3.5 requests==2.32.3
+      - run: pip install -r backend/requirements.txt pytest==8.3.5 requests==2.32.3 ruff==0.16.9
+      - name: Qualité du code (ruff)
+        run: cd backend && ruff check . && ruff format --check .
       - name: Lancer le serveur
         run: |
           cd backend && nohup uvicorn server:app --port 8001 > ../server.log 2>&1 &
           for i in $(seq 1 30); do curl -sf http://localhost:8001/api/ && exit 0; sleep 1; done
-          cat server.log; exit 1
+          cat ../server.log; exit 1
       - run: pytest -q backend/tests
         env:
           API_URL: http://localhost:8001

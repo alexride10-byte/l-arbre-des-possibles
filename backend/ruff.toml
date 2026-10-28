@@ -1,0 +1,7 @@
+line-length = 160
+target-version = "py311"
+[lint]
+select = ["E", "F", "W", "B", "UP", "SIM", "ASYNC"]
+ignore = ["B008", "B904", "B006", "SIM108", "SIM117", "E731", "E501", "ASYNC109"]
+[format]
+skip-magic-trailing-comma = true
